@@ -4,7 +4,7 @@ This is a repository containing the homeworks for the "Introduction to Robotics"
 
 Each homework will include the implemetation details and strategies and code, as well as physical requirements.
 
-#Homework 1: Controlling an RGB LED using 3 potentiometers
+# Homework 1: Controlling an RGB LED using 3 potentiometers
 
 The task for this homework is to use an Arduino Board to read the analog values from three potentiometers and transmit them over the analog output pins to our RGB LED. 
 Each potentiometer is associated with one of the colors.
