@@ -9,6 +9,9 @@ const int redAnalogOutPin = 9;
 int blueInVal = 0, greenInVal = 0, redInVal = 0;
 int blueOutVal = 0, greenOutVal = 0, redOutVal = 0;
 
+const int minInValue = 0, maxInValue = 1023;
+const int minOutValue = 0, maxOutValue = 255;
+
 void setup()
 {
   pinMode(blueAnalogInPin, INPUT);
@@ -23,13 +26,13 @@ void setup()
 void loop()
 {
   blueInVal = analogRead(blueAnalogInPin);
-  blueOutVal = map(blueInVal, 0, 1023, 0, 255);
+  blueOutVal = map(blueInVal, minInValue, maxInValue, minOutValue, maxOutValue);
 
   greenInVal = analogRead(greenAnalogInPin);
-  greenOutVal = map(greenInVal, 0, 1023, 0, 255);
+  greenOutVal = map(greenInVal, minInValue, maxInValue, minOutValue, maxOutValue);
 
   redInVal = analogRead(redAnalogInPin);
-  redOutVal = map(redInVal, 0, 1023, 0, 255);
+  redOutVal = map(redInVal, minInValue, maxInValue, minOutValue, maxOutValue);
 
   analogWrite(blueAnalogOutPin, blueOutVal);
   analogWrite(greenAnalogOutPin, greenOutVal);
