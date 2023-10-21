@@ -10,12 +10,12 @@ The task for this homework is to use an Arduino Board to read the analog values 
 Each potentiometer is associated with one of the colors.
 
 Physical requirements:
-    - Arduino Board
-    - Breadboard
-    - Potentiometer x3
-    - RGB LED
-    - Resistor x3
-    - Wires
+  - Arduino Board
+  - Breadboard
+  - Potentiometer x3
+  - RGB LED
+  - Resistor x3
+  - Wires
 
 ![Circuit1](Homework1/Robo_H1_RGB.jpg)
 ![Circuit2](Homework1/Robo_H1_RGB_2.jpg)
