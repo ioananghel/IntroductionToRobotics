@@ -15,7 +15,7 @@ Physical requirements:
   - Breadboard
   - Potentiometer x3
   - RGB LED
-  - Resistor x3
+  - 330 Ohm Resistor x3
   - Wires
 
 ![Circuit1](Homework1/Robo_H1_RGB.jpg)
