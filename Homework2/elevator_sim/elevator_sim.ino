@@ -15,18 +15,14 @@ const int movingTime = 2000;
 const int waitingTime = 2000;
 const int blinkingTime = 300;
 
-volatile bool firstFloorCall = false, secondFloorCall = false, thirdFloorCall = false;
-volatile unsigned long firstFloorLastCall = 0, secondFloorLastCall = 0, thirdFloorLastCall = 0;
-
-volatile unsigned long lastDoorOpen = 0;
+bool firstFloorCall = false, secondFloorCall = false, thirdFloorCall = false;
+unsigned long firstFloorLastCall = 0, secondFloorLastCall = 0, thirdFloorLastCall = 0;
 
 const int debounceDelay = 500;
 
 volatile int elevatorState = 0;
 volatile int elevatorLedState =  1;
-// -1 - going down
-// 0 - stopped
-// 1 - going up
+
 volatile int currentFloor = 1;
 
 void setup() {
@@ -47,11 +43,8 @@ void setup() {
 void loop() {
 
   firstFloorCall = digitalRead(firstFloorButton);
-  Serial.println(firstFloorCall);
   secondFloorCall = digitalRead(secondFloorButton);
-  Serial.println(secondFloorCall);
   thirdFloorCall = digitalRead(thirdFloorButton);
-  Serial.println(thirdFloorCall);
 
   digitalWrite(elevatorLed, elevatorLedState);
 
@@ -72,14 +65,12 @@ void loop() {
           moving(movingTime);
           openDoor(firstFloorLed);
           currentFloor = 1;
-          Serial.println("Moving down");
         }
         else {
           if(currentFloor == 3) {
             moving(movingTime * 2);
             openDoor(firstFloorLed);
             currentFloor = 1;
-            Serial.println("Moving down");
           }
         }
       }
@@ -102,14 +93,12 @@ void loop() {
           moving(movingTime);
           openDoor(secondFloorLed);
           currentFloor = 2;
-          Serial.println("Moving up");
         }
         else {
           if(currentFloor == 3) {
             moving(movingTime);
             openDoor(secondFloorLed);
             currentFloor = 2;
-            Serial.println("Moving down");
           }
         }
       }
@@ -132,14 +121,12 @@ void loop() {
           moving(movingTime * 2);
           openDoor(thirdFloorLed);
           currentFloor = 3;
-          Serial.println("Moving up");
         }
         else {
           if(currentFloor == 2) {
             moving(movingTime);
             openDoor(thirdFloorLed);
             currentFloor = 3;
-            Serial.println("Moving up");
           }
         }
       }
@@ -148,7 +135,6 @@ void loop() {
 }
 
 void openDoor(int floorLed) {
-  lastDoorOpen = millis();
   elevatorState = 0;
 
   digitalWrite(floorLed, HIGH);
@@ -179,8 +165,6 @@ void closeDoor(int floorLed) {
 void moving(int time) {
   tone(lowVolBuzzerPin, 600, time);
   createDelay(time);
-
-  Serial.println("Am ajuns");
 
   noTone(buzzerPin);
 }
