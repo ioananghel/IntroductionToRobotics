@@ -23,9 +23,11 @@ Physical requirements:
 
 Link to the video showcasing the functionality: https://youtu.be/310TrTj0omM
 
+<details>
+<summary>
 # Homework 2
 ## Elevator Simulator
-
+</summary>
 The task for this homework is to use an Arduino Board to simulate an elevator. The elevator has and 3 buttons and three LEDs, representing the three floors. The elevator can be called from any floor and it will move to it. A buzzer is used to emmit sounds that represent the movement of the elevator, as well as the opening and closing of the doors. Another LED is used to show the state of the elevator.
 
 Physical requirements:
@@ -42,3 +44,5 @@ Physical requirements:
 ![Circuit2](Homework2/Robo_H2_Elevator.jpg)
 
 Link to the video showcasing the functionality: https://youtu.be/mrRqRWHTR4w
+
+</details>
