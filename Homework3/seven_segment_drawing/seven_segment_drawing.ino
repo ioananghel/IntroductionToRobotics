@@ -1,7 +1,7 @@
 const int pinSW = 2;
 const int pinX = A0;
 const int pinY = A1;
-byte swState = LOW;
+byte swState = HIGH;
 int xValue = 0;
 int yValue = 0;
 
@@ -22,7 +22,7 @@ int segments[segSize] = {
 const int lowerThresholdX = 450, lowerThresholdY = 450;
 const int upperThresholdX = 570, upperThresholdY = 570;
 
-volatile int debounceDelay = 300;
+volatile int debounceDelay = 50;
 const int resetDelay = 2000;
 const int blinkingTime = 300;
 volatile unsigned long lastPressed = 0;
@@ -61,7 +61,7 @@ void setup() {
         pinMode(segments[i], OUTPUT);
     }
 
-    attachInterrupt(digitalPinToInterrupt(pinSW), onPress, FALLING);
+    attachInterrupt(digitalPinToInterrupt(pinSW), onChange, CHANGE);
 
     Serial.begin(9600);
 }
@@ -75,15 +75,8 @@ void loop() {
         digitalWrite(currentSegment, currentSegmentState);
     }
 
-    swState = digitalRead(pinSW);
     xValue = analogRead(pinX);
     yValue = analogRead(pinY);
-
-    if(swState == 0) {
-        if(millis() - lastPressed > resetDelay) {
-            // resetDisplay();
-        }
-    }
 
     if(xValue > upperThresholdX && !toggled) {
         toggled = 1;
@@ -113,11 +106,7 @@ void loop() {
 }
 
 void move(int direction, int currSegment) {
-    // Serial.println("Moving");
-    // Serial.println(currentSegment);
-    // Serial.println(pinToIndex(currSegment));
     currentSegment = neighbours[pinToIndex(currSegment)][direction] != -1 ? neighbours[pinToIndex(currSegment)][direction] : currSegment;
-    // Serial.println(currentSegment);
 
     if(states[pinToIndex(currSegment)]) {
         digitalWrite(currSegment, HIGH);
@@ -127,23 +116,29 @@ void move(int direction, int currSegment) {
     }
 }
 
-void onPress() {
-    Serial.println("Pressed");
-    // Serial.println(micros() - lastPressed * 1000);
-    // Serial.println(debounceDelay * 1000);
+void onChange() {
+
     unsigned long current = micros() / 1000 - lastPressed;
-    // Serial.println(current);
-    if(current > debounceDelay) { // && swToggled == 0) {
-        // swToggled = 1;
-        // Serial.println("Debounced");
+
+    if(current < debounceDelay) {
+        return;
+    }
+
+    if(current > resetDelay && swState == LOW) {
+        resetDisplay();
+
+        swState = !swState;
         lastPressed = micros() / 1000;
 
+        return;
+    }
+
+    if(swState == HIGH) {
         states[pinToIndex(currentSegment)] = !states[pinToIndex(currentSegment)];
     }
 
-    // if(current > resetDelay && swToggled == 1) {
-    //     resetDisplay();
-    // }
+    lastPressed = micros() / 1000;
+    swState = !swState;
 }
 
 void resetDisplay() {
