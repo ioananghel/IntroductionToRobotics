@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:uno",
+    "programmer": "avrisp",
+    "port": "COM3",
+    "sketch": "Homework3\\seven_segment_drawing\\seven_segment_drawing.ino"
+}
