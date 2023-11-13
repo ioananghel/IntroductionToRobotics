@@ -73,3 +73,27 @@ Physical requirements:
 Link to the video showcasing the functionality: https://youtu.be/K0G9w6SNDi8
 
 </details>
+
+
+# Homework 4
+<details>
+<summary>
+4 Digit 7 Segment Display Timer
+</summary>
+The task for this homework is to use an Arduino Board and a 4 digit 7 segment display to create a timer with a precision of one tenth of a second. We have three buttons, one for start/pause, one for reset and one for lap. The timer will start counting when the start button is pressed, and it will stop when the start button is pressed again. The reset button will reset the timer to 0, and the lap button will save up to 4 separate lap times, which can be seen by pressing the lap button again, once the timer is paused.
+
+Physical requirements:
+  - Arduino Board
+  - Breadboard
+  - 4 Digit 7 Segment Display
+  - Button x3
+  - 10 kOhm Resistor for pull-down button x3
+  - 330 Ohm Resistor for segments x8
+  - 74hc595 Shift Register
+  - Wires
+
+![Circuit1](Homework4/4digit_timer.jpg)
+
+Link to the video showcasing the functionality: 
+
+</details>
