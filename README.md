@@ -82,6 +82,8 @@ Link to the video showcasing the functionality: https://youtu.be/K0G9w6SNDi8
 </summary>
 The task for this homework is to use an Arduino Board and a 4 digit 7 segment display to create a timer with a precision of one tenth of a second. We have three buttons, one for start/pause, one for reset and one for lap. The timer will start counting when the start button is pressed, and it will stop when the start button is pressed again. The reset button will reset the timer to 0, and the lap button will save up to 4 separate lap times, which can be seen by pressing the lap button again, once the timer is paused.
 
+The physical build leads to the buttons being very noisy, so i had to implement some debouncing for all the functions in each of them. When checking the Serial debugging messages, we can see that the funcionality is correct, but the noisiness of the buttons leads to some unwanteed behaviour(entering other functions when pressing a button).
+
 Physical requirements:
   - Arduino Board
   - Breadboard
@@ -94,6 +96,6 @@ Physical requirements:
 
 ![Circuit1](Homework4/4digit_timer.jpg)
 
-Link to the video showcasing the functionality: 
+Link to the video showcasing the functionality: https://youtu.be/_k5XdpF3h-E
 
 </details>
