@@ -96,6 +96,6 @@ Physical requirements:
 
 ![Circuit1](Homework4/4digit_timer.jpg)
 
-Link to the video showcasing the functionality: https://youtu.be/_k5XdpF3h-E
+Link to the video showcasing the functionality: https://youtu.be/OoD-L4Js9JM
 
 </details>
