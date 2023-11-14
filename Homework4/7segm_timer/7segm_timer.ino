@@ -105,8 +105,6 @@ void loop() {
         activateDisplay(-1);
     }
 
-    // Serial.println(lapState);
-
     if(counting) {
         int currentTime = millis();
         int timePassed = currentTime - startTime;
@@ -170,17 +168,15 @@ void start() {
         counting = !counting;
         pausedTime = current - startTime;
         startTime = current;
-        // Serial.println(startTime);
-    } /// TREBUIE SA VAD PE CE RAMURA INTRA
+    }
     else if(!counting && current - lastStartPressed > debounceDelay) {
         lapNr = 0;
         displayLap = false;
         lastResetPressed = micros() / second;
-        // Serial.println(startTime);
         lastStartPressed = current;
         if(startTime == 0) {
             startTime = current;
-            Serial.println("PE 1"); /// PENTRU LATER ON, AICI INTRA, FIINDCA START TIME RAMANE PE 0
+            Serial.println("PE 1");
         }
         else {
             startTime = current - pausedTime; // i want to keep the counter going from the same point
@@ -205,8 +201,6 @@ void lap() {
     lastStartPressed = millis();
     if(counting) {
         int current = millis();
-        // if(current - lastLapPressed > debounceDelay) {
-        Serial.println("LAP");
         lastLapPressed = current;
         counting = !counting;
         for(int i = 3; i >= 1; i--) {
@@ -223,21 +217,15 @@ void lap() {
         for(int i = 0; i < 4; i++) { // we can see here that the laps are being properly saved
             Serial.print(laps[0][i]);
         }
-        // }
     }
     if(!counting) {
-        Serial.println("LAP1");
-        //cycling through the saved laps
         int current = millis();
         lapNr = lapNr % 4;
-        // if(current - lastLapPressed > debounceDelay) {
-            // Serial.println("LAP");
         for(int j = 0; j < displayCount; j++) {
             displayedLap[j] = laps[lapNr][j];
         }
         lapNr++;
         displayLap = true;
-        // }
     }
 }
 
