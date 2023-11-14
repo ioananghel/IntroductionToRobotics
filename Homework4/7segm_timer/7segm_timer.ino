@@ -85,6 +85,8 @@ void loop() {
     int lapState = digitalRead(lapButton);
 
     if(lapState == 1 && millis() - lastLapPressed > debounceDelay) {
+        lastResetPressed = millis();
+        lastStartPressed = millis();
         lastLapPressed = millis();
         lap();
     }
@@ -199,13 +201,14 @@ void start() {
 }
 
 void lap() {
-    lastResetPressed = micros() / second;
-    lastStartPressed = micros() / second;
+    lastResetPressed = millis();
+    lastStartPressed = millis();
     if(counting) {
-        int current = micros() / second;
+        int current = millis();
         // if(current - lastLapPressed > debounceDelay) {
         Serial.println("LAP");
         lastLapPressed = current;
+        counting = !counting;
         for(int i = 3; i >= 1; i--) {
             for(int j = 0; j < displayCount; j++) {
                 laps[i][j] = laps[i - 1][j];
@@ -215,18 +218,24 @@ void lap() {
         laps[0][1] = digits[1];
         laps[0][2] = digits[2];
         laps[0][3] = digits[3];
-        Serial.println(laps[0][3]);
+
+        counting = !counting;
+        for(int i = 0; i < 4; i++) { // we can see here that the laps are being properly saved
+            Serial.print(laps[0][i]);
+        }
         // }
     }
     if(!counting) {
         Serial.println("LAP1");
         //cycling through the saved laps
-        int current = micros() / second;
+        int current = millis();
+        lapNr = lapNr % 4;
         // if(current - lastLapPressed > debounceDelay) {
             // Serial.println("LAP");
         for(int j = 0; j < displayCount; j++) {
-            displayedLap[j] = laps[lapNr++][j];
+            displayedLap[j] = laps[lapNr][j];
         }
+        lapNr++;
         displayLap = true;
         // }
     }
