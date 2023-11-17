@@ -1,10 +1,11 @@
 int incomingByte = 0;
-bool menuDisplayed = false, waitingForInput = false;
+bool menuDisplayed = false, waitingForInput = false, printReadings = false;
 int selected = -1, option = -1; // 1 = sensor settings, 2 = reset logger data, 3 = system status, 4 = RGB LED control
 
 int samplingInterval = 10000; // 10 seconds
 int ultrasonicThreshold = 100; // 100 cm
 int ldrThreshold = 100; // 100 lux
+unsigned long previousRead = 0;
 
 void setup() {
     Serial.begin(9600);
@@ -18,16 +19,34 @@ void loop() {
         printMenu();
     }
 
+    if(printReadings && millis() - previousRead >= samplingInterval) {
+        previousRead = millis();
+        clearScreen();
+
+        Serial.println("Input 'Q' to return to main menu");
+        Serial.println("Current sensor readings:");
+        Serial.println("Ultrasonic: ");
+        Serial.println("LDR: ");
+    }
+
     if (Serial.available() > 0) {
 
+        if(printReadings) {
+            incomingByte = Serial.read();
+            if(incomingByte == 'Q') {
+                printReadings = false;
+                menuDisplayed = false;
+            }
+        }
+
         if(waitingForInput) {
-            Serial.println("in wainting for input");
+            // Serial.println("in wainting for input");
             int input = Serial.parseInt();
             switch(option) {
                 case 11:
                     if(input >= 1 && input <= 10) {
                         samplingInterval = input * 1000;
-                        Serial.println("Sampling interval updated");
+                        Serial.println("Sampling interval updated: ");
                         Serial.println(samplingInterval);
                     }
                     else {
@@ -37,7 +56,7 @@ void loop() {
                 case 12:
                     if(input >= 1 && input <= 100) {
                         ultrasonicThreshold = input;
-                        Serial.println("Ultrasonic threshold updated");
+                        Serial.println("Ultrasonic threshold updated: ");
                         Serial.println(ultrasonicThreshold);
                     }
                     else {
@@ -47,7 +66,7 @@ void loop() {
                 case 13:
                     if(input >= 1 && input <= 100) {
                         ldrThreshold = input;
-                        Serial.println("LDR threshold updated");
+                        Serial.println("LDR threshold updated: ");
                         Serial.println(ldrThreshold);
                     }
                     else {
@@ -64,8 +83,8 @@ void loop() {
         else {
             option = -1;
             option = Serial.parseInt();
-            Serial.println("------------");
-            Serial.println(option);
+            // Serial.println("------------");
+            // Serial.println(option);
 
             if(option != -1 && selected != -1) {
                 option = selected * 10 + option; // two digit numbers like D1D2 are going to represent submenus D1.D2
@@ -78,8 +97,8 @@ void loop() {
             }
             else {
                 Serial.println("Invalid option");
-                Serial.println(option);
-                Serial.println(selected);
+                // Serial.println(option);
+                // Serial.println(selected);
             }
 
             delay(30);
@@ -151,14 +170,21 @@ void printMenu(int subMenu = -1) {
         case 22:
             menuDisplayed = false;
             break;
+        case 31:
+            printReadings = true;
+            break;
         default:
             Serial.println("Invalid options");
-            Serial.println(subMenu);
+            // Serial.println(subMenu);
             Serial.print("\n");
             break;
     }
 }
 
 void resetData() {
-    
+
+}
+
+void clearScreen() {
+    Serial.print("\n\n\n\n\n\n\n\n\n");
 }
