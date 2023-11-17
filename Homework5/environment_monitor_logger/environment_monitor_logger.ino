@@ -173,9 +173,26 @@ void printMenu(int subMenu = -1) {
         case 31:
             printReadings = true;
             break;
+        case 32:
+            Serial.println("Current sensor settings:");
+            Serial.print("Sampling interval: ");
+            Serial.println(samplingInterval);
+            Serial.print("Ultrasonic threshold: ");
+            Serial.println(ultrasonicThreshold);
+            Serial.print("LDR threshold: ");
+            Serial.println(ldrThreshold);
+            Serial.print("\n");
+            menuDisplayed = false;
+            break;
+        case 33:
+            printLoggedData();
+            menuDisplayed = false;
+            break;
+        case 34:
+            menuDisplayed = false;
+            break;
         default:
             Serial.println("Invalid options");
-            // Serial.println(subMenu);
             Serial.print("\n");
             break;
     }
@@ -186,5 +203,9 @@ void resetData() {
 }
 
 void clearScreen() {
-    Serial.print("\n\n\n\n\n\n\n\n\n");
+    Serial.print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+}
+
+void printLoggedData() {
+
 }
