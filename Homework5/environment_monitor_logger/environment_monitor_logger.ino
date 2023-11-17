@@ -28,6 +28,7 @@ void loop() {
                     if(input >= 1 && input <= 10) {
                         samplingInterval = input * 1000;
                         Serial.println("Sampling interval updated");
+                        Serial.println(samplingInterval);
                     }
                     else {
                         Serial.println("Invalid input");
@@ -37,6 +38,7 @@ void loop() {
                     if(input >= 1 && input <= 100) {
                         ultrasonicThreshold = input;
                         Serial.println("Ultrasonic threshold updated");
+                        Serial.println(ultrasonicThreshold);
                     }
                     else {
                         Serial.println("Invalid input");
@@ -46,6 +48,7 @@ void loop() {
                     if(input >= 1 && input <= 100) {
                         ldrThreshold = input;
                         Serial.println("LDR threshold updated");
+                        Serial.println(ldrThreshold);
                     }
                     else {
                         Serial.println("Invalid input");
@@ -93,6 +96,7 @@ void printMenu(int subMenu = -1) {
             Serial.println("3. System Status");
             Serial.println("4. RGB LED Control");
             Serial.print("\n");
+            menuDisplayed = true;
             break;
         case 1:
             Serial.println("1. Sensors Sampling Interval");
@@ -125,11 +129,36 @@ void printMenu(int subMenu = -1) {
             Serial.print("\n");
             waitingForInput = true;
             break;
+        case 12:
+            Serial.println("Enter a new ultrasonic threshold between 1 and 100 cm: ");
+            Serial.print("\n");
+            waitingForInput = true;
+            break;
+        case 13:
+            Serial.println("Enter a new LDR threshold between 1 and 100 lux: ");
+            Serial.print("\n");
+            waitingForInput = true;
+            break;
+        case 14:
+            Serial.println("Returning to main menu");
+            Serial.print("\n");
+            menuDisplayed = false;
+            break;
+        case 21:
+            Serial.println("Resetting logger data");
+            Serial.print("\n");
+            resetData();
+        case 22:
+            menuDisplayed = false;
+            break;
         default:
             Serial.println("Invalid options");
             Serial.println(subMenu);
             Serial.print("\n");
             break;
     }
-    menuDisplayed = true;
+}
+
+void resetData() {
+    
 }
