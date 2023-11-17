@@ -1,13 +1,25 @@
 int incomingByte = 0;
-bool menuDisplayed = false, waitingForInput = false, printReadings = false;
+bool menuDisplayed = false, waitingForInput = false, printReadings = false, selectColor = false, automaticState = true;
 int selected = -1, option = -1; // 1 = sensor settings, 2 = reset logger data, 3 = system status, 4 = RGB LED control
+int redPin = 11, greenPin = 10, bluePin = 9;
+int userRedPin = A0, userGreenPin = A1, userBluePin = A2;
+int redValue = 255, greenValue = 255, blueValue = 0;
+int userRedValue = 125, userGreenValue = 125, userBlueValue = 125;
 
 int samplingInterval = 10000; // 10 seconds
 int ultrasonicThreshold = 100; // 100 cm
 int ldrThreshold = 100; // 100 lux
 unsigned long previousRead = 0;
 
+int ultrasonicValue = 101, ldrValue = 0;
+
 void setup() {
+    pinMode(redPin, OUTPUT);
+    pinMode(greenPin, OUTPUT);
+    pinMode(bluePin, OUTPUT);
+    pinMode(userRedPin, INPUT);
+    pinMode(userGreenPin, INPUT);
+    pinMode(userBluePin, INPUT);
     Serial.begin(9600);
 }
 
@@ -17,6 +29,46 @@ void loop() {
     if(!menuDisplayed) {
         selected = -1;
         printMenu();
+    }
+
+    if(automaticState) {
+        analogWrite(redPin, redValue);
+        analogWrite(greenPin, greenValue);
+        analogWrite(bluePin, blueValue);
+
+        if(ultrasonicValue > ultrasonicThreshold || ldrValue > ldrThreshold) {
+            greenValue = 0;
+            redValue = 255;
+        }
+        else {
+            greenValue = 255;
+            redValue = 0;
+        }
+    }
+    else {
+        analogWrite(redPin, userRedValue);
+        analogWrite(greenPin, userGreenValue);
+        analogWrite(bluePin, userBlueValue);
+    }
+
+    if(selectColor) {
+        userRedValue = map(analogRead(userRedPin), 0, 1023, 0, 255);
+        userGreenValue = map(analogRead(userGreenPin), 0, 1023, 0, 255);
+        userBlueValue = map(analogRead(userBluePin), 0, 1023, 0, 255);
+
+        if(Serial.available() > 0) {
+            incomingByte = Serial.read();
+            if(incomingByte == 'S') {
+                selectColor = false;
+                Serial.print("Color saved: RGB = ");
+                Serial.print(userRedValue);
+                Serial.print(", ");
+                Serial.print(userGreenValue);
+                Serial.print(", ");
+                Serial.println(userBlueValue);
+            }
+            menuDisplayed = false;
+        }
     }
 
     if(printReadings && millis() - previousRead >= samplingInterval) {
@@ -189,6 +241,17 @@ void printMenu(int subMenu = -1) {
             menuDisplayed = false;
             break;
         case 34:
+            menuDisplayed = false;
+            break;
+        case 41:
+            Serial.println("Select color for alerting using the potentiometers and then input 'S' to save the color");
+            selectColor = true;
+            automaticState = false;
+            break;
+        case 42:
+            Serial.print("Setting automatic state to: ");
+            Serial.println(automaticState == false ? "ON" : "OFF");
+            automaticState = !automaticState;
             menuDisplayed = false;
             break;
         default:
