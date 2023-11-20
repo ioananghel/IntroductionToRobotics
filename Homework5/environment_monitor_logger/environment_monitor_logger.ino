@@ -6,12 +6,23 @@ int userRedPin = A0, userGreenPin = A1, userBluePin = A2;
 int redValue = 255, greenValue = 255, blueValue = 0;
 int userRedValue = 125, userGreenValue = 125, userBlueValue = 125;
 
+const int trigPin = 5;
+const int echoPin = 6;
+long duration = 0;
+int distance = 0;
+int photocellPin = A5;
+int photocellValue;
+
+const int nrReadings = 10;
+int ultrasonicReadings[nrReadings];
+int ldrReadings[nrReadings];
+
 int samplingInterval = 10000; // 10 seconds
 int ultrasonicThreshold = 100; // 100 cm
-int ldrThreshold = 100; // 100 lux
+int ldrThreshold = 200; // 200 lux
 unsigned long previousRead = 0;
 
-int ultrasonicValue = 101, ldrValue = 0;
+int ultrasonicValue = 0, ldrValue = 0;
 
 void setup() {
     pinMode(redPin, OUTPUT);
@@ -20,6 +31,10 @@ void setup() {
     pinMode(userRedPin, INPUT);
     pinMode(userGreenPin, INPUT);
     pinMode(userBluePin, INPUT);
+
+    pinMode(trigPin, OUTPUT);
+    pinMode(echoPin, INPUT);
+
     Serial.begin(9600);
 }
 
@@ -29,6 +44,12 @@ void loop() {
     if(!menuDisplayed) {
         selected = -1;
         printMenu();
+    }
+
+    if(millis() - previousRead >= samplingInterval) {
+        previousRead = millis();
+        readUltrasonic();
+        readLDR();
     }
 
     if(automaticState) {
@@ -46,9 +67,19 @@ void loop() {
         }
     }
     else {
-        analogWrite(redPin, userRedValue);
-        analogWrite(greenPin, userGreenValue);
-        analogWrite(bluePin, userBlueValue);
+        if(ultrasonicValue > ultrasonicThreshold || ldrValue > ldrThreshold) {
+            greenValue = userGreenValue;
+            redValue = userRedValue;
+            blueValue = userBlueValue;
+        }
+        else {
+            greenValue = 255;
+            redValue = 0;
+            blueValue = 0;
+        }
+        analogWrite(redPin, redValue);
+        analogWrite(greenPin, greenValue);
+        analogWrite(bluePin, blueValue);
     }
 
     if(selectColor) {
@@ -77,8 +108,10 @@ void loop() {
 
         Serial.println("Input 'Q' to return to main menu");
         Serial.println("Current sensor readings:");
-        Serial.println("Ultrasonic: ");
-        Serial.println("LDR: ");
+        Serial.print("Ultrasonic: ");
+        Serial.println(ultrasonicValue);
+        Serial.print("LDR: ");
+        Serial.println(ldrValue);
     }
 
     if (Serial.available() > 0) {
@@ -262,7 +295,7 @@ void printMenu(int subMenu = -1) {
 }
 
 void resetData() {
-
+    
 }
 
 void clearScreen() {
@@ -270,5 +303,37 @@ void clearScreen() {
 }
 
 void printLoggedData() {
+    
+}
 
+void readUltrasonic() {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+    duration = pulseIn(echoPin, HIGH);
+    ultrasonicValue = duration*0.034/2;
+    
+    addUltrasonicReading(ultrasonicValue);
+}
+
+void readLDR() {
+    ldrValue = analogRead(photocellPin);  
+    ldrValue = map(ldrValue, 0, 1023, 0, 255);
+    
+    addLDRReading(ldrValue);
+}
+
+void addUltrasonicReading(int reading) {
+    for(int i = 0; i < nrReadings - 1; i++) {
+        ultrasonicReadings[i] = ultrasonicReadings[i + 1];
+    }
+    ultrasonicReadings[nrReadings - 1] = reading;
+}
+void addLDRReading(int reading) {
+    for(int i = 0; i < nrReadings - 1; i++) {
+        ldrReadings[i] = ldrReadings[i + 1];
+    }
+    ldrReadings[nrReadings - 1] = reading;
 }
