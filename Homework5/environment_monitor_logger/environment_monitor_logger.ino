@@ -1,3 +1,5 @@
+#include <EEPROM.h>
+
 int incomingByte = 0;
 bool menuDisplayed = false, waitingForInput = false, printReadings = false, selectColor = false, automaticState = true;
 int selected = -1, option = -1; // 1 = sensor settings, 2 = reset logger data, 3 = system status, 4 = RGB LED control
@@ -16,6 +18,9 @@ int photocellValue;
 const int nrReadings = 10;
 int ultrasonicReadings[nrReadings];
 int ldrReadings[nrReadings];
+
+const int firstUltrasonicReading = 0;
+const int firstLDRReading = nrReadings * sizeof(int) + 1;
 
 int samplingInterval = 10000; // 10 seconds
 int ultrasonicThreshold = 100; // 100 cm
@@ -270,6 +275,7 @@ void printMenu(int subMenu = -1) {
             menuDisplayed = false;
             break;
         case 33:
+            resetData();
             printLoggedData();
             menuDisplayed = false;
             break;
@@ -295,7 +301,11 @@ void printMenu(int subMenu = -1) {
 }
 
 void resetData() {
-    
+    int nullValue = 0;
+    for(int i = 0; i < nrReadings * sizeof(int); i += sizeof(int)) {
+        EEPROM.put(firstUltrasonicReading + i, nullValue);
+        EEPROM.put(firstLDRReading + i, nullValue);
+    }
 }
 
 void clearScreen() {
@@ -303,7 +313,32 @@ void clearScreen() {
 }
 
 void printLoggedData() {
-    
+    writeLoggedData();
+    Serial.println("Ultrasonic \t|\t LDR");
+    for(int i = 0; i < nrReadings * sizeof(int); i += sizeof(int)) {
+        int distance, ldr;
+        distance = EEPROM.get(firstUltrasonicReading + i, distance);
+        ldr = EEPROM.get(firstLDRReading + i, ldr);
+        // Serial.print("Ultrasonic: ");
+        Serial.print("\t");
+        Serial.print(distance);
+        Serial.print("\t|\t");
+        // Serial.print(", LDR: ");
+        Serial.println(ldr);
+    }
+}
+
+void writeLoggedData() {
+    int address = firstUltrasonicReading;
+    for(int i = 0; i < nrReadings; i++) {
+        EEPROM.put(address, ultrasonicReadings[i]);
+        address += sizeof(int);
+    }
+    address = firstLDRReading;
+    for(int i = 0; i < nrReadings; i++) {
+        EEPROM.put(address, ldrReadings[i]);
+        address += sizeof(int);
+    }
 }
 
 void readUltrasonic() {
