@@ -99,3 +99,25 @@ Physical requirements:
 Link to the video showcasing the functionality: https://youtu.be/OoD-L4Js9JM
 
 </details>
+
+
+# Homework 5
+<details>
+<summary>
+Pseudo-Smart Environment Monitor and Logger
+</summary>
+
+The task for this homework is to use an Arduino Board, a light sensor and a distance one to make an interactive environment monitor. The light sensor will be used to detect the light intensity in the room, and the distance sensor will be used to detect the distance to the closest object in front of it. The user has access to multiple menus and submenus that allow them to modify settings, such as the threshold for the measurings, the sampling interval, and writing to memory or resetting the taken measurments.
+
+Physical requirements:
+  - Arduino Board
+  - Breadboard
+  - LDR Sensor
+  - Ultrasonic Distance Sensor
+  - RGB LED
+  - Potentiometer x3
+  - 10 kOhm Resistor for pull-down
+  - 330 Ohm Resistor for RGB LED
+  - Wires
+
+</details>
