@@ -120,4 +120,8 @@ Physical requirements:
   - 330 Ohm Resistor for RGB LED
   - Wires
 
+![Circuit1](Homework5/env_logger.jpg)
+
+Link to the video showcasing the functionality: https://youtu.be/eTRS-AF6Z8Y
+
 </details>
