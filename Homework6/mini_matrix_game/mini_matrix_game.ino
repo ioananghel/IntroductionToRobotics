@@ -8,7 +8,7 @@ const int pinX = A0;
 const int pinY = A1;
 const int pinSW = 2;
 
-unsigned long lastChangeX = 0, lastChangeY = 0, lastSW;
+unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
 byte matrixBrightness = 2;
 byte xPos = 0;
@@ -20,9 +20,11 @@ int xValue, yValue;
 const int lowerThresholdX = 400, lowerThresholdY = 400;
 const int upperThresholdX = 650, upperThresholdY = 650;
 
-const int debounceTime = 200;
-const int bulletBlinkingTime = 100, playerBlinkingTime = 400;
-unsigned long lastBulletBlink = 0, lastPlayerBlink = 0; // these are going to be included in the classes, most likely
+const int debounceTime = 300;
+const int shootDebounceTime = 500;
+const int bulletBlinkingTime = 100, bulletSpeed = 200, playerBlinkingTime = 400;
+unsigned long lastBulletMove = 0;
+unsigned long lastBulletBlink = 0, lastPlayerBlink = 0;
 bool bulletState = 0, playerState = 0;
 
 const byte matrixSize = 8;
@@ -35,6 +37,7 @@ direction up = {0, -1};
 direction down = {0, 1};
 direction left = {-1, 0};
 direction right = {1, 0};
+direction currentDirection = {0, 0};
 
 byte matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -51,9 +54,133 @@ class Player {
 
 };
 
-class Bullet {
+void updateMatrix();
 
+class Bullet {
+    int xPos, yPos;
+    int xLastPos, yLastPos;
+    direction dir;
+
+    public:
+        Bullet(int xPos, int yPos, direction dir) {
+            this->xPos = xPos;
+            this->yPos = yPos;
+            this->dir = dir;
+
+            Serial.println("Bullet created");
+        }
+        Bullet& operator=(const Bullet& other) {
+            direction position = other.getPosition();
+            this->xPos = position.x;
+            this->yPos = position.y;
+            position = other.getLastPosition();
+            this->xLastPos = position.x;
+            this->yLastPos = position.y;
+            this->dir = other.getDirection();
+            return *this;
+        }
+        direction getPosition() {
+            return {xPos, yPos};
+        }
+        direction getLastPosition() {
+            return {xLastPos, yLastPos};
+        }
+        direction getDirection() {
+            return this->dir;
+        }
+
+        bool move() {
+            xLastPos = xPos;
+            yLastPos = yPos;
+            xPos = (xPos + dir.x) % matrixSize;
+            yPos = (yPos + dir.y) % matrixSize;
+            if(xPos < 0) {
+                xPos = matrixSize - 1;
+            }
+            if(yPos < 0) {
+                yPos = matrixSize - 1;
+            }
+
+            if(matrix[xPos][yPos] == 1) {
+                matrix[xPos][yPos] = 0;
+                matrix[xLastPos][yLastPos] = 0;
+                updateMatrix();
+                return 0;
+            }
+
+            updateMatrix();
+            return 1;
+        }
+        void blink(bool state) {
+            lc.setLed(0, xPos, yPos, state);
+        }
 };
+
+class BulletNode {
+    Bullet *bullet;
+    BulletNode* next;
+
+    public:
+        BulletNode(Bullet* bullet) {
+            this->bullet = bullet;
+            this->next = NULL;
+        }
+        void setNext(BulletNode* next) {
+            this->next = next;
+        }
+        BulletNode* getNext() {
+            return this->next;
+        }
+        Bullet* getBullet() {
+            return this->bullet;
+        }
+        ~BulletNode() {
+            delete this->bullet;
+        }
+};
+
+class BulletList {
+    BulletNode* head;
+    BulletNode* tail;
+
+    public:
+        BulletList() {
+            this->head = NULL;
+            this->tail = NULL;
+        }
+        BulletNode* getHead() {
+            return this->head;
+        }
+        BulletNode* getTail() {
+            return this->tail;
+        }
+        void addNode(BulletNode* node) {
+            if(this->head == NULL) {
+                this->head = node;
+                this->tail = node;
+            }
+            else {
+                this->tail->setNext(node);
+                this->tail = node;
+            }
+        }
+        void removeNode(BulletNode* node) {
+            if(node == this->head) {
+                this->head = this->head->getNext();
+                delete node;
+            }
+            else {
+                BulletNode* prev = this->head;
+                while(prev->getNext() != node) {
+                    prev = prev->getNext();
+                }
+                prev->setNext(node->getNext());
+                delete node;
+            }
+        }
+};
+
+BulletList bullets;
 
 void setup() {
     Serial.begin(9600);
@@ -75,17 +202,23 @@ void setup() {
 void loop() {
     if(millis() - lastBulletBlink > bulletBlinkingTime) {
         lastBulletBlink = millis();
-        //change state of the bullet led -- in class
+        bulletState = !bulletState;
+        BulletNode* node = bullets.getHead();
+        while(node != NULL) {
+            node->getBullet()->blink(bulletState);
+            node = node->getNext();
+        }
     }
     if(millis() - lastPlayerBlink > playerBlinkingTime) {
         lastPlayerBlink = millis();
         playerState = !playerState;
-        // matrix[xLastPos][yLastPos] = playerState;
         lc.setLed(0, xLastPos, yLastPos, playerState);
     }
 
     readJoystick();
     actOnJoystick();
+    actOnSW();
+    bulletsTravel();
 }
 
 void readJoystick() {
@@ -96,19 +229,46 @@ void readJoystick() {
 void actOnJoystick() {
     if(xValue > upperThresholdX && millis() - lastChangeX > debounceTime) {
         lastChangeX = millis();
+        currentDirection = up;
         move(up);
     }
     else if(xValue < lowerThresholdX && millis() - lastChangeX > debounceTime) {        
         lastChangeX = millis();
+        currentDirection = down;
         move(down);
     }
     if(yValue > upperThresholdY && millis() - lastChangeY > debounceTime) {
         lastChangeY = millis();
+        currentDirection = right;
         move(right);
     }
     else if(yValue < lowerThresholdY && millis() - lastChangeY > debounceTime) {
         lastChangeY = millis();
+        currentDirection = left;
         move(left);
+    }
+}
+
+void actOnSW() {
+    if(digitalRead(pinSW) == 1 && millis() - lastChangeSW > shootDebounceTime) {
+        lastChangeSW = millis();
+
+        Bullet* bullet = new Bullet(xLastPos, yLastPos, currentDirection);
+        BulletNode* node = new BulletNode(bullet);
+        bullets.addNode(node);
+    }
+}
+
+void bulletsTravel() {
+    if(millis() - lastBulletMove > bulletSpeed) {
+        lastBulletMove = millis();
+        BulletNode* node = bullets.getHead();
+        while(node != NULL) {
+            if(node->getBullet()->move() == 0) {
+                bullets.removeNode(node);
+            }
+            node = node->getNext();
+        }
     }
 }
 
