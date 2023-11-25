@@ -1,14 +1,14 @@
 #include "LedControl.h" 
+#include <time.h>
 const int dinPin = 12;
 const int clockPin = 11;
 const int loadPin = 10;
-
 
 const int pinX = A0;
 const int pinY = A1;
 const int pinSW = 2;
 
-int lastChangeX = 0, lastChangeY = 0, lastSW;
+unsigned long lastChangeX = 0, lastChangeY = 0, lastSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
 byte matrixBrightness = 2;
 byte xPos = 0;
@@ -22,7 +22,8 @@ const int upperThresholdX = 650, upperThresholdY = 650;
 
 const int debounceTime = 200;
 const int bulletBlinkingTime = 100, playerBlinkingTime = 400;
-int lastBulletBlink = 0, lastPlayerBlink = 0; // these are going to be included in the classes, most likely
+unsigned long lastBulletBlink = 0, lastPlayerBlink = 0; // these are going to be included in the classes, most likely
+bool bulletState = 0, playerState = 0;
 
 const byte matrixSize = 8;
 bool matrixChanged = true;
@@ -36,7 +37,7 @@ direction left = {-1, 0};
 direction right = {1, 0};
 
 byte matrix[matrixSize][matrixSize] = {
-  {1, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -48,18 +49,23 @@ byte matrix[matrixSize][matrixSize] = {
 
 class Player {
 
-}
+};
 
 class Bullet {
 
-}
+};
 
 void setup() {
     Serial.begin(9600);
     lc.shutdown(0, false);
     lc.setIntensity(0, matrixBrightness);
-    lc.clearDisplay(0); 
+    lc.clearDisplay(0);
+
+    srand(time(0));
+    randomStartPos();
     matrix[xPos][yPos] = 1;
+    generateWalls();
+    updateMatrix();
 
     pinMode(pinX, INPUT);
     pinMode(pinY, INPUT);
@@ -73,7 +79,9 @@ void loop() {
     }
     if(millis() - lastPlayerBlink > playerBlinkingTime) {
         lastPlayerBlink = millis();
-        //change state of the player led -- in class
+        playerState = !playerState;
+        // matrix[xLastPos][yLastPos] = playerState;
+        lc.setLed(0, xLastPos, yLastPos, playerState);
     }
 
     readJoystick();
@@ -105,8 +113,6 @@ void actOnJoystick() {
 }
 
 void move(direction dir) {
-    lc.clearDisplay(0);
-
     xPos = (xLastPos + dir.x) % matrixSize;
     yPos = (yLastPos + dir.y) % matrixSize;
     if(xPos < 0) {
@@ -115,9 +121,13 @@ void move(direction dir) {
     if(yPos < 0) {
         yPos = matrixSize - 1;
     }
+
+    if(matrix[xPos][yPos] == 1) {
+        return;
+    }
+
     matrix[xPos][yPos] = 1;
     matrix[xLastPos][yLastPos] = 0;
-
     updateMatrix();
     xLastPos = xPos;
     yLastPos = yPos;
@@ -128,5 +138,32 @@ void updateMatrix() {
         for (int col = 0; col < matrixSize; col++) {
             lc.setLed(0, row, col, matrix[row][col]);
         }
+    }
+}
+
+void randomStartPos() {
+    srand(time(0));
+
+    xPos = rand() % matrixSize;
+    yPos = rand() % matrixSize;
+
+    xLastPos = xPos;
+    yLastPos = yPos;
+}
+
+void generateWalls() {
+    // 8x8 matrix => 64 cells
+    // 50% - 75% walls => 32 - 48 walls
+    srand(time(0));
+
+    int noWalls = rand() % 17 + 32;
+    for(int i = 0; i < noWalls; i++) {
+        int x = rand() % matrixSize;
+        int y = rand() % matrixSize;
+
+        if(matrix[x][y] == 1) {
+            i--;
+        }
+        matrix[x][y] = 1;
     }
 }
