@@ -10,7 +10,7 @@ const int pinSW = 2;
 
 unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
-byte matrixBrightness = 2;
+byte matrixBrightness = 7.5;
 byte xPos = 0;
 byte yPos = 0;
 byte xLastPos = 0;
@@ -30,9 +30,9 @@ bool bulletState = 0, playerState = 0;
 const byte matrixSize = 8;
 bool matrixChanged = true;
 
-bool menuDisplayed = false;
-int selected = -1;
-int start = 1;
+bool menuDisplayed = false, waitingForInput = false, finished = false;
+int selected = -1, option = -1;
+int start = 0, uncovered = 0;
 int noWalls = 0;
 
 struct direction {
@@ -84,7 +84,7 @@ class Bullet {
             this->yPos = yPos;
             this->dir = dir;
 
-            Serial.println("Bullet created");
+            // Serial.println("Bullet created");
         }
         Bullet& operator=(const Bullet& other) {
             direction position = other.getPosition();
@@ -134,7 +134,7 @@ class Bullet {
 
             if(matrix[xPos][yPos] == 1) {
                 noWalls--;
-                Serial.println(noWalls);
+                // Serial.println(noWalls);
                 matrix[xPos][yPos] = 0;
                 matrix[xLastPos][yLastPos] = 0;
                 updateMatrix();
@@ -234,20 +234,75 @@ void setup() {
 }
 
 void loop() {
+
+    if(!menuDisplayed && !start) {
+        selected = -1;
+        printMenu();
+    }
+
     if(start) {
-        uncoverMatrix();
+        if(!uncovered) {
+            uncoverMatrix();
+            uncovered = 1;
+        }
+        
+        if(noWalls == 0 && !finished) {
+            coverMatrix();
+            displayAnimation(trophyMatrix);
+            resetBoard();
+        }
+
+        blinkLEDs();
+        readJoystick();
+        actOnJoystick();
+        actOnSW();
+        bulletsTravel();
     }
 
-    if(noWalls == 0) {
-        coverMatrix();
-        displayAnimation(trophyMatrix);
-    }
+    if (!start && Serial.available() > 0) {
+        if(waitingForInput) {
+            waitingForInput = false;
+            option = -1;
+            option = Serial.parseInt();
+            switch(option) {
+                case 1:
+                    matrixBrightness = 2;
+                    lc.setIntensity(0, matrixBrightness);
+                    break;
+                case 2:
+                    matrixBrightness = 8;
+                    lc.setIntensity(0, matrixBrightness);
+                    break;
+                case 3:
+                    matrixBrightness = 15;
+                    lc.setIntensity(0, matrixBrightness);
+                    break;
+                case 4:
+                    break;
+                default:
+                    Serial.println("Invalid option");
+                    break;
+            }
+            printMenu();
+        }
+        else {
+            option = -1;
+            option = Serial.parseInt();
 
-    blinkLEDs();
-    readJoystick();
-    actOnJoystick();
-    actOnSW();
-    bulletsTravel();
+            if(option != -1 && selected != -1) {
+                option = selected * 10 + option; // two digit numbers like D1D2 are going to represent submenus D1.D2
+                printMenu(option);
+                selected = -1;
+            }
+            else if (option != -1) {
+                selected = option;
+                printMenu(option);
+            }
+            else {
+                Serial.println("Invalid option");
+            }
+        }
+    }
 }
 
 void blinkLEDs() {
@@ -285,7 +340,6 @@ void uncoverMatrix() {
             delay(25);
         }
     }
-    start = 0;
 }
 
 void readJoystick() {
@@ -395,10 +449,49 @@ void generateWalls() {
     }
 }
 
+void printMenu(int subMenu = -1) {
+    switch(subMenu) {
+        case -1:
+            Serial.println("Main menu:");
+            Serial.println("1. Play");
+            Serial.println("2. Set Matrix Brightness");
+            Serial.print("\n");
+            menuDisplayed = true;
+            break;
+        case 1:
+            start = 1;
+            break;
+        case 2:
+            Serial.println("Set Matrix Brightness:");
+            Serial.println("1. Low");
+            Serial.println("2. Medium");
+            Serial.println("3. High");
+            Serial.println("4. Cancel");
+            waitingForInput = true;
+            Serial.print("\n");
+            break;
+        default:
+            Serial.println("Invalid options");
+            Serial.print("\n");
+            break;
+    }
+}
+
 void displayAnimation(byte matrix[matrixSize][matrixSize]) {
     for(int row = 0; row < matrixSize; row++) {
         for(int col = 0; col < matrixSize; col++) {
             lc.setLed(0, row, col, matrix[row][col]);
        }
     }
+}
+
+void resetBoard() {
+    menuDisplayed = 0;
+    uncovered = 0;
+    finished = 1;
+    start = 0;
+    srand(micros());
+    randomStartPos();
+    matrix[xPos][yPos] = 1;
+    generateWalls();
 }
