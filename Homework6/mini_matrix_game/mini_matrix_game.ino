@@ -30,6 +30,9 @@ bool bulletState = 0, playerState = 0;
 const byte matrixSize = 8;
 bool matrixChanged = true;
 
+int start = 1;
+int noWalls = 0;
+
 struct direction {
     int x, y;
 };
@@ -92,16 +95,32 @@ class Bullet {
         bool move() {
             xLastPos = xPos;
             yLastPos = yPos;
-            xPos = (xPos + dir.x) % matrixSize;
-            yPos = (yPos + dir.y) % matrixSize;
+            xPos = (xPos + dir.x);
+            yPos = (yPos + dir.y);
+            if(xPos >= matrixSize) {
+                matrix[xPos][yPos] = 0;
+                updateMatrix();
+                return 0;
+            }
+            if(yPos >= matrixSize) {
+                matrix[xPos][yPos] = 0;
+                updateMatrix();
+                return 0;
+            }
             if(xPos < 0) {
-                xPos = matrixSize - 1;
+                matrix[xPos][yPos] = 0;
+                updateMatrix();
+                return 0;
             }
             if(yPos < 0) {
-                yPos = matrixSize - 1;
+                matrix[xPos][yPos] = 0;
+                updateMatrix();
+                return 0;
             }
 
             if(matrix[xPos][yPos] == 1) {
+                noWalls--;
+                Serial.println(noWalls);
                 matrix[xPos][yPos] = 0;
                 matrix[xLastPos][yLastPos] = 0;
                 updateMatrix();
@@ -187,12 +206,13 @@ void setup() {
     lc.shutdown(0, false);
     lc.setIntensity(0, matrixBrightness);
     lc.clearDisplay(0);
+    coverMatrix();
 
-    srand(time(0));
+    srand(micros());
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
-    updateMatrix();
+    // updateMatrix();
 
     pinMode(pinX, INPUT);
     pinMode(pinY, INPUT);
@@ -200,6 +220,27 @@ void setup() {
 }
 
 void loop() {
+    if(start) {
+        uncoverMatrix();
+    }
+
+    if(noWalls == 0) {
+        coverMatrix();
+    }
+
+    blinkLEDs();
+    readJoystick();
+    actOnJoystick();
+    actOnSW();
+    bulletsTravel();
+}
+
+void blinkLEDs() {
+    if(millis() - lastPlayerBlink > playerBlinkingTime) {
+        lastPlayerBlink = millis();
+        playerState = !playerState;
+        lc.setLed(0, xLastPos, yLastPos, playerState);
+    }
     if(millis() - lastBulletBlink > bulletBlinkingTime) {
         lastBulletBlink = millis();
         bulletState = !bulletState;
@@ -209,16 +250,27 @@ void loop() {
             node = node->getNext();
         }
     }
-    if(millis() - lastPlayerBlink > playerBlinkingTime) {
-        lastPlayerBlink = millis();
-        playerState = !playerState;
-        lc.setLed(0, xLastPos, yLastPos, playerState);
-    }
+}
 
-    readJoystick();
-    actOnJoystick();
-    actOnSW();
-    bulletsTravel();
+void coverMatrix() {
+    for (int row = 0; row < matrixSize; row++) {
+        for (int col = 0; col < matrixSize; col++) {
+            lc.setLed(0, row, col, true);
+            delay(25);
+        }
+    }
+}
+
+void uncoverMatrix() {
+    for (int row = 0; row < matrixSize; row++) {
+        for (int col = 0; col < matrixSize; col++) {
+            if(matrix[row][col] == 0) {
+                lc.setLed(0, row, col, false);
+            }
+            delay(25);
+        }
+    }
+    start = 0;
 }
 
 void readJoystick() {
@@ -302,7 +354,7 @@ void updateMatrix() {
 }
 
 void randomStartPos() {
-    srand(time(0));
+    srand(micros());
 
     xPos = rand() % matrixSize;
     yPos = rand() % matrixSize;
@@ -314,9 +366,9 @@ void randomStartPos() {
 void generateWalls() {
     // 8x8 matrix => 64 cells
     // 50% - 75% walls => 32 - 48 walls
-    srand(time(0));
+    srand(micros());
 
-    int noWalls = rand() % 17 + 32;
+    noWalls = rand() % 17 + 32;
     for(int i = 0; i < noWalls; i++) {
         int x = rand() % matrixSize;
         int y = rand() % matrixSize;
