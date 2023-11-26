@@ -134,7 +134,7 @@ class Bullet {
 
             if(matrix[xPos][yPos] == 1) {
                 noWalls--;
-                // Serial.println(noWalls);
+                Serial.println(noWalls);
                 matrix[xPos][yPos] = 0;
                 matrix[xLastPos][yLastPos] = 0;
                 updateMatrix();
@@ -242,6 +242,7 @@ void loop() {
 
     if(start) {
         if(!uncovered) {
+            coverMatrix();
             uncoverMatrix();
             uncovered = 1;
         }
@@ -289,12 +290,7 @@ void loop() {
             option = -1;
             option = Serial.parseInt();
 
-            if(option != -1 && selected != -1) {
-                option = selected * 10 + option; // two digit numbers like D1D2 are going to represent submenus D1.D2
-                printMenu(option);
-                selected = -1;
-            }
-            else if (option != -1) {
+            if (option != -1) {
                 selected = option;
                 printMenu(option);
             }
@@ -486,11 +482,17 @@ void displayAnimation(byte matrix[matrixSize][matrixSize]) {
 }
 
 void resetBoard() {
+    for(int row = 0; row < matrixSize; row++) {
+        for(int col = 0; col < matrixSize; col++) {
+            matrix[row][col] = 0;
+        }
+    }
+
     menuDisplayed = 0;
     uncovered = 0;
     finished = 1;
     start = 0;
-    srand(micros());
+    srand(time(0));
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
