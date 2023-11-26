@@ -30,6 +30,8 @@ bool bulletState = 0, playerState = 0;
 const byte matrixSize = 8;
 bool matrixChanged = true;
 
+bool menuDisplayed = false;
+int selected = -1;
 int start = 1;
 int noWalls = 0;
 
@@ -53,11 +55,23 @@ byte matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0}  
 };
 
+byte trophyMatrix[matrixSize][matrixSize] = {
+    {1, 1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 1, 1, 1, 1, 0, 1},
+    {0, 1, 1, 1, 1, 1, 1, 0},
+    {0, 0, 1, 1, 1, 1, 0, 0},
+    {0, 0, 0, 1, 1, 0, 0, 0},
+    {0, 0, 0, 1, 1, 0, 0, 0},
+    {0, 0, 1, 1, 1, 1, 0, 0},
+    {0, 0, 1, 1, 1, 1, 0, 0}
+};
+
 class Player {
 
 };
 
 void updateMatrix();
+void printMenu(int subMenu = -1);
 
 class Bullet {
     int xPos, yPos;
@@ -226,6 +240,7 @@ void loop() {
 
     if(noWalls == 0) {
         coverMatrix();
+        displayAnimation(trophyMatrix);
     }
 
     blinkLEDs();
@@ -377,5 +392,13 @@ void generateWalls() {
             i--;
         }
         matrix[x][y] = 1;
+    }
+}
+
+void displayAnimation(byte matrix[matrixSize][matrixSize]) {
+    for(int row = 0; row < matrixSize; row++) {
+        for(int col = 0; col < matrixSize; col++) {
+            lc.setLed(0, row, col, matrix[row][col]);
+       }
     }
 }
