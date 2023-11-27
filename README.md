@@ -126,7 +126,7 @@ Link to the video showcasing the functionality: https://youtu.be/eTRS-AF6Z8Y
 
 </details>
 
-#Homework 6
+# Homework 6
 <details>
 <summary>
 Mini 8x8 LED Matrix game
