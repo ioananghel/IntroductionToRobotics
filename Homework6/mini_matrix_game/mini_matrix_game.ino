@@ -7,6 +7,7 @@ const int loadPin = 10;
 const int pinX = A0;
 const int pinY = A1;
 const int pinSW = 2;
+const int buzzerPin = 3;
 
 unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
@@ -24,16 +25,23 @@ const int debounceTime = 300;
 const int shootDebounceTime = 500;
 const int bulletBlinkingTime = 100, bulletSpeed = 200, playerBlinkingTime = 400;
 unsigned long lastBulletMove = 0;
-unsigned long lastBulletBlink = 0, lastPlayerBlink = 0;
+unsigned long lastBulletBlink = 0, lastPlayerBlink = 0, lastBulletSound = 0, lastHitSound = 0;
 bool bulletState = 0, playerState = 0;
 
 const byte matrixSize = 8;
 bool matrixChanged = true;
 
-bool menuDisplayed = false, waitingForInput = false, finished = false;
+bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false;
 int selected = -1, option = -1;
 int start = 0, uncovered = 0;
 int noWalls = 0;
+
+const int soundFrequencies = 3;
+int currentFrequency = 0;
+int bulletSoundFrequencies[] = {800, 1000, 1200};
+int bulletSoundDurations[] = {50, 30, 20};
+int wallHitSoundFrequencies[] = {600, 400, 200};
+int wallHitSoundDurations[] = {20, 30, 40};
 
 struct direction {
     int x, y;
@@ -85,6 +93,7 @@ class Bullet {
             this->dir = dir;
 
             // Serial.println("Bullet created");
+            playShootSound = true;
         }
         Bullet& operator=(const Bullet& other) {
             direction position = other.getPosition();
@@ -133,6 +142,7 @@ class Bullet {
             }
 
             if(matrix[xPos][yPos] == 1) {
+                playDestroySound = true;
                 noWalls--;
                 Serial.println(noWalls);
                 matrix[xPos][yPos] = 0;
@@ -258,6 +268,32 @@ void loop() {
         actOnJoystick();
         actOnSW();
         bulletsTravel();
+    }
+
+    if(playDestroySound) {
+        tone(buzzerPin, wallHitSoundFrequencies[currentFrequency], wallHitSoundDurations[currentFrequency]);
+        if(millis() - lastHitSound > wallHitSoundDurations[currentFrequency]) {
+            lastHitSound = millis();
+            noTone(buzzerPin);
+            currentFrequency++;
+            if(currentFrequency == soundFrequencies) {
+                currentFrequency = 0;
+                playDestroySound = false;
+            }
+        }
+    }
+
+    if(playShootSound) {
+        tone(buzzerPin, bulletSoundFrequencies[currentFrequency], bulletSoundDurations[currentFrequency]);
+        if(millis() - lastBulletSound > bulletSoundDurations[currentFrequency]) {
+            lastBulletSound = millis();
+            noTone(buzzerPin);
+            currentFrequency++;
+            if(currentFrequency == soundFrequencies) {
+                currentFrequency = 0;
+                playShootSound = false;
+            }
+        }
     }
 
     if (!start && Serial.available() > 0) {
