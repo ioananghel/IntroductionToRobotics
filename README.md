@@ -125,3 +125,30 @@ Physical requirements:
 Link to the video showcasing the functionality: https://youtu.be/eTRS-AF6Z8Y
 
 </details>
+
+# Homework 6
+<details>
+<summary>
+Mini 8x8 LED Matrix game
+</summary>
+
+The task for this homework is to use an Arduino Board, an 8x8 LED MAtrix and a joystick to create a mini game. The player starts the game inside a randomly generated map, that is made up of 50%-75% obstacles. The player has to shoot the obstacles, using the button, and destroy all of them in order to finish the game. There is also a shooting and wall destruction sound effect, done with a buzzer.
+
+Physical requirements:
+  - Arduino Board
+  - Breadboard
+  - 8x8 LED Matrix
+  - Joystick
+  - Button
+  - Buzzer
+  - 10 kOhm Resistor for pull-down
+  - 20 kOhm Resistor for LED Matrix
+  - 100 uF Electroytic Capacitor
+  - 0.1 uF Ceramic Capacitor
+  - Wires
+
+![Circuit1](Homework6/mini_matrix_game_circuit.jpg)
+
+Link to the video showcasing the functionality: https://youtu.be/FB3EmhiGD5w
+
+</details>
