@@ -6,6 +6,7 @@ const int loadPin = 10;
 
 const int pinX = A0;
 const int pinY = A1;
+const int pinLDR = A3;
 const int pinSW = 2;
 const int buzzerPin = 3;
 
@@ -32,7 +33,7 @@ bool bulletState = 0, playerState = 0;
 const byte matrixSize = 8;
 bool matrixChanged = true;
 
-bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false;
+bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false, automaticBrightness = false;
 int selected = -1, option = -1;
 bool start = 0, uncovered = 0;
 int noWalls = 0;
@@ -252,6 +253,11 @@ void loop() {
         printMenu();
     }
 
+    if(automaticBrightness) {
+        matrixBrightness = map(analogRead(pinLDR), 0, 1023, 0, 15);
+        lc.setIntensity(0, matrixBrightness);
+    }
+
     if(start) {
         if(!uncovered) {
             coverMatrix();
@@ -308,18 +314,23 @@ void loop() {
             option = Serial.parseInt();
             switch(option) {
                 case 1:
+                    automaticBrightness = false;
                     matrixBrightness = 2;
                     lc.setIntensity(0, matrixBrightness);
                     break;
                 case 2:
+                    automaticBrightness = false;
                     matrixBrightness = 8;
                     lc.setIntensity(0, matrixBrightness);
                     break;
                 case 3:
+                    automaticBrightness = false;
                     matrixBrightness = 15;
                     lc.setIntensity(0, matrixBrightness);
                     break;
                 case 4:
+                    automaticBrightness = true;
+                case 5:
                     break;
                 default:
                     Serial.println("Invalid option");
@@ -504,7 +515,8 @@ void printMenu(int subMenu = -1) {
             Serial.println("1. Low");
             Serial.println("2. Medium");
             Serial.println("3. High");
-            Serial.println("4. Cancel");
+            Serial.println("4. Auto");
+            Serial.println("5. Cancel");
             waitingForInput = true;
             Serial.print("\n");
             break;
