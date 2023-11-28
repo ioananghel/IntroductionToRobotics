@@ -234,7 +234,7 @@ void setup() {
     lc.clearDisplay(0);
     coverMatrix();
 
-    srand(micros());
+    randomSeed(analogRead(A2));
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
@@ -460,10 +460,10 @@ void updateMatrix() {
 }
 
 void randomStartPos() {
-    srand(micros());
+    randomSeed(analogRead(A2));
 
-    xPos = rand() % matrixSize;
-    yPos = rand() % matrixSize;
+    xPos = random() % matrixSize;
+    yPos = random() % matrixSize;
 
     xLastPos = xPos;
     yLastPos = yPos;
@@ -472,12 +472,12 @@ void randomStartPos() {
 void generateWalls() {
     // 8x8 matrix => 64 cells
     // 50% - 75% walls => 32 - 48 walls
-    srand(micros());
+    randomSeed(analogRead(A2));
 
-    noWalls = rand() % 17 + 32;
+    noWalls = random() % 17 + 32;
     for(int i = 0; i < noWalls; i++) {
-        int x = rand() % matrixSize;
-        int y = rand() % matrixSize;
+        int x = random() % matrixSize;
+        int y = random() % matrixSize;
 
         if(matrix[x][y] == 1) {
             i--;
@@ -534,7 +534,7 @@ void resetBoard() {
     uncovered = 0;
     finished = 1;
     start = 0;
-    srand(time(0));
+    randomSeed(analogRead(A2));
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
