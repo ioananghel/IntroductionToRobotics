@@ -39,9 +39,9 @@ int noWalls = 0;
 const int soundFrequencies = 3;
 int currentFrequency = 0;
 int bulletSoundFrequencies[] = {800, 1000, 1200};
-int bulletSoundDurations[] = {50, 30, 20};
+int bulletSoundDurations[] = {80, 50, 40};
 int wallHitSoundFrequencies[] = {600, 400, 200};
-int wallHitSoundDurations[] = {20, 30, 40};
+int wallHitSoundDurations[] = {40, 50, 60};
 
 struct direction {
     int x, y;
@@ -144,7 +144,7 @@ class Bullet {
             if(matrix[xPos][yPos] == 1) {
                 playDestroySound = true;
                 noWalls--;
-                Serial.println(noWalls);
+                // Serial.println(noWalls);
                 matrix[xPos][yPos] = 0;
                 matrix[xLastPos][yLastPos] = 0;
                 updateMatrix();
