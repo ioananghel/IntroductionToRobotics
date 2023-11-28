@@ -23,6 +23,7 @@ const int upperThresholdX = 650, upperThresholdY = 650;
 
 const int debounceTime = 300;
 const int shootDebounceTime = 500;
+const int second = 1000;
 const int bulletBlinkingTime = 100, bulletSpeed = 200, playerBlinkingTime = 400;
 unsigned long lastBulletMove = 0;
 unsigned long lastBulletBlink = 0, lastPlayerBlink = 0, lastBulletSound = 0, lastHitSound = 0;
@@ -33,8 +34,9 @@ bool matrixChanged = true;
 
 bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false;
 int selected = -1, option = -1;
-int start = 0, uncovered = 0;
+bool start = 0, uncovered = 0;
 int noWalls = 0;
+unsigned long startTime = 0;
 
 const int soundFrequencies = 3;
 int currentFrequency = 0;
@@ -261,6 +263,9 @@ void loop() {
             coverMatrix();
             displayAnimation(trophyMatrix);
             resetBoard();
+            Serial.print("Congrats, you finished in ");
+            Serial.print((millis() - startTime) / second);
+            Serial.println(" seconds");
         }
 
         blinkLEDs();
@@ -492,6 +497,7 @@ void printMenu(int subMenu = -1) {
             break;
         case 1:
             start = 1;
+            startTime = millis();
             break;
         case 2:
             Serial.println("Set Matrix Brightness:");
