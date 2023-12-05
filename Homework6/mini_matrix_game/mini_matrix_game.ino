@@ -1,5 +1,5 @@
-#include "LedControl.h" 
-#include <time.h>
+#include "LedControl.h"
+#include <LiquidCrystal.h>
 const int dinPin = 12;
 const int clockPin = 11;
 const int loadPin = 10;
@@ -9,6 +9,15 @@ const int pinY = A1;
 const int pinLDR = A3;
 const int pinSW = 2;
 const int buzzerPin = 3;
+
+const byte rs = 9;
+const byte en = 8;
+const byte d4 = 7;
+const byte d5 = 6;
+const byte d6 = 5;
+const byte d7 = 4;
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
@@ -75,6 +84,94 @@ byte trophyMatrix[matrixSize][matrixSize] = {
     {0, 0, 0, 1, 1, 0, 0, 0},
     {0, 0, 1, 1, 1, 1, 0, 0},
     {0, 0, 1, 1, 1, 1, 0, 0}
+};
+
+byte timerChar[matrixSize] = {
+	0b01110,
+	0b00100,
+	0b01110,
+	0b10011,
+	0b11101,
+	0b10001,
+	0b01110,
+	0b00000
+};
+
+byte trophyChar[matrixSize] = {
+	0b00000,
+	0b11111,
+	0b10101,
+	0b01110,
+	0b00100,
+	0b00100,
+	0b01110,
+	0b11111
+};
+
+byte wrenchChar[matrixSize] = {
+	0b11011,
+	0b10001,
+	0b11011,
+	0b01110,
+	0b00100,
+	0b00100,
+	0b00100,
+	0b01110
+};
+
+byte amazedChar[matrixSize] = {
+	0b11011,
+	0b00000,
+	0b01010,
+	0b00000,
+	0b01110,
+	0b01010,
+	0b01110,
+	0b00000
+};
+
+byte explosion1Step[matrixSize] = {
+	0b00000,
+	0b00000,
+	0b00100,
+	0b01110,
+	0b01110,
+	0b00100,
+	0b00000,
+	0b00000
+};
+
+byte explosion2Step[matrixSize] = {
+	0b00000,
+	0b00100,
+	0b01110,
+	0b11111,
+	0b11111,
+	0b01110,
+	0b00100,
+	0b00000
+};
+
+byte explosion3Step[matrixSize] = {
+	0b00100,
+	0b01110,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b01110,
+	0b00100
+};
+
+byte fullMatrix[matrixSize] = {
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111,
+	0b11111
 };
 
 class Player {
@@ -230,6 +327,17 @@ BulletList bullets;
 
 void setup() {
     Serial.begin(9600);
+    lcd.begin(16, 2);
+
+    lcd.createChar(0, timerChar);
+    lcd.createChar(1, trophyChar);
+    lcd.createChar(2, wrenchChar);
+    lcd.createChar(3, amazedChar);
+    lcd.createChar(4, explosion1Step);
+    lcd.createChar(5, explosion2Step);
+    lcd.createChar(6, explosion3Step);
+    lcd.createChar(7, fullMatrix);
+
     lc.shutdown(0, false);
     lc.setIntensity(0, matrixBrightness);
     lc.clearDisplay(0);
