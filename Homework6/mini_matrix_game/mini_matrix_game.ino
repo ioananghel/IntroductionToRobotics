@@ -1,5 +1,6 @@
 #include "LedControl.h"
 #include <LiquidCrystal.h>
+#include "custom_chars.h"
 const int dinPin = 12;
 const int clockPin = 11;
 const int loadPin = 10;
@@ -31,6 +32,8 @@ int xValue, yValue;
 const int lowerThresholdX = 400, lowerThresholdY = 400;
 const int upperThresholdX = 650, upperThresholdY = 650;
 
+const int startUpTime = 2000;
+int startUpAt = 0;
 const int debounceTime = 300;
 const int shootDebounceTime = 500;
 const int second = 1000;
@@ -39,11 +42,12 @@ unsigned long lastBulletMove = 0;
 unsigned long lastBulletBlink = 0, lastPlayerBlink = 0, lastBulletSound = 0, lastHitSound = 0;
 bool bulletState = 0, playerState = 0;
 
-const byte matrixSize = 8;
+// const byte matrixSize = 8;
 bool matrixChanged = true;
 
 bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false, automaticBrightness = false;
-int selected = -1, option = -1;
+bool inMenu = true;
+int selected = 0, option = 0;
 bool start = 0, uncovered = 0;
 int noWalls = 0;
 unsigned long startTime = 0;
@@ -65,121 +69,19 @@ direction right = {1, 0};
 direction currentDirection = {0, 0};
 
 byte matrix[matrixSize][matrixSize] = {
+  {1, 1, 1, 0, 0, 1, 1, 1},
+  {1, 0, 0, 0, 0, 0, 0, 1},
+  {1, 0, 0, 0, 0, 0, 0, 1},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0}  
+  {1, 0, 0, 0, 0, 0, 0, 1},
+  {1, 0, 0, 0, 0, 0, 0, 1},
+  {1, 1, 1, 0, 0, 1, 1, 1}  
 };
-
-byte trophyMatrix[matrixSize][matrixSize] = {
-    {1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 1, 1, 1, 1, 0, 1},
-    {0, 1, 1, 1, 1, 1, 1, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0},
-    {0, 0, 0, 1, 1, 0, 0, 0},
-    {0, 0, 0, 1, 1, 0, 0, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0}
-};
-
-byte timerChar[matrixSize] = {
-	0b01110,
-	0b00100,
-	0b01110,
-	0b10011,
-	0b11101,
-	0b10001,
-	0b01110,
-	0b00000
-};
-
-byte trophyChar[matrixSize] = {
-	0b00000,
-	0b11111,
-	0b10101,
-	0b01110,
-	0b00100,
-	0b00100,
-	0b01110,
-	0b11111
-};
-
-byte wrenchChar[matrixSize] = {
-	0b11011,
-	0b10001,
-	0b11011,
-	0b01110,
-	0b00100,
-	0b00100,
-	0b00100,
-	0b01110
-};
-
-byte amazedChar[matrixSize] = {
-	0b11011,
-	0b00000,
-	0b01010,
-	0b00000,
-	0b01110,
-	0b01010,
-	0b01110,
-	0b00000
-};
-
-byte explosion1Step[matrixSize] = {
-	0b00000,
-	0b00000,
-	0b00100,
-	0b01110,
-	0b01110,
-	0b00100,
-	0b00000,
-	0b00000
-};
-
-byte explosion2Step[matrixSize] = {
-	0b00000,
-	0b00100,
-	0b01110,
-	0b11111,
-	0b11111,
-	0b01110,
-	0b00100,
-	0b00000
-};
-
-byte explosion3Step[matrixSize] = {
-	0b00100,
-	0b01110,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b01110,
-	0b00100
-};
-
-byte fullMatrix[matrixSize] = {
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111,
-	0b11111
-};
-
-class Player {
-
-};
+/// here, i could make these walls that i want to be permanent have another value, so that i can not destroy them!
 
 void updateMatrix();
-void printMenu(int subMenu = -1);
+void printMenu(int subMenu = 0);
 
 class Bullet {
     int xPos, yPos;
@@ -334,9 +236,13 @@ void setup() {
     lcd.createChar(2, wrenchChar);
     lcd.createChar(3, amazedChar);
     lcd.createChar(4, explosion1Step);
-    lcd.createChar(5, explosion2Step);
-    lcd.createChar(6, explosion3Step);
-    lcd.createChar(7, fullMatrix);
+    // lcd.createChar(5, explosion2Step);
+    // lcd.createChar(6, explosion3Step);
+    // lcd.createChar(7, fullMatrix);
+    lcd.createChar(5, heartChar);
+    lcd.createChar(6, skullChar);
+    lcd.createChar(7, upDownArrows);
+
 
     lc.shutdown(0, false);
     lc.setIntensity(0, matrixBrightness);
@@ -352,12 +258,21 @@ void setup() {
     pinMode(pinX, INPUT);
     pinMode(pinY, INPUT);
     pinMode(pinSW, INPUT_PULLUP);
+
+    lcd.setCursor(0, 0);
+    lcd.print("Hello, player!");
+    lcd.setCursor(0, 2);
+    lcd.print("Remember:be fast!");
+    startUpAt = millis();
 }
 
 void loop() {
+    if(millis() - startUpAt < startUpTime) {
+        return;
+    }
 
     if(!menuDisplayed && !start) {
-        selected = -1;
+        selected = 0;
         printMenu();
     }
 
@@ -414,50 +329,9 @@ void loop() {
             }
         }
     }
-
-    if (!start && Serial.available() > 0) {
-        if(waitingForInput) {
-            waitingForInput = false;
-            option = -1;
-            option = Serial.parseInt();
-            switch(option) {
-                case 1:
-                    automaticBrightness = false;
-                    matrixBrightness = 2;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 2:
-                    automaticBrightness = false;
-                    matrixBrightness = 8;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 3:
-                    automaticBrightness = false;
-                    matrixBrightness = 15;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 4:
-                    automaticBrightness = true;
-                case 5:
-                    break;
-                default:
-                    Serial.println("Invalid option");
-                    break;
-            }
-            printMenu();
-        }
-        else {
-            option = -1;
-            option = Serial.parseInt();
-
-            if (option != -1) {
-                selected = option;
-                printMenu(option);
-            }
-            else {
-                Serial.println("Invalid option");
-            }
-        }
+    if (!start && inMenu) {
+        readJoystick();
+        navigateMenu();
     }
 }
 
@@ -523,6 +397,25 @@ void actOnJoystick() {
         lastChangeY = millis();
         currentDirection = left;
         move(left);
+    }
+}
+
+void navigateMenu() {
+    if(xValue < lowerThresholdX && millis() - lastChangeX > debounceTime) {
+        lastChangeX = millis();
+        selected++;
+        if(selected > 3) {
+            selected = 0;
+        }
+        printMenu(selected);
+    }
+    else if(xValue > upperThresholdX && millis() - lastChangeX > debounceTime) {        
+        lastChangeX = millis();
+        selected--;
+        if(selected < 0) {
+            selected = 3;
+        }
+        printMenu(selected);
     }
 }
 
@@ -605,29 +498,36 @@ void generateWalls() {
     }
 }
 
-void printMenu(int subMenu = -1) {
+void printMenu(int subMenu = 0) {
+    lcd.clear();
     switch(subMenu) {
-        case -1:
+        case 0:
             Serial.println("Main menu:");
-            Serial.println("1. Play");
-            Serial.println("2. Set Matrix Brightness");
-            Serial.print("\n");
+            lcd.setCursor(0, 0);
+            lcd.print("Main menu      ");
+            lcd.write(byte(7));
             menuDisplayed = true;
             break;
         case 1:
-            start = 1;
-            startTime = millis();
+            // start = 1;
+            // startTime = millis();
+            // inMenu = false;
+            // these are actually for selecting play
+            lcd.setCursor(0, 0);
+            lcd.print("> Play         ");
+            Serial.println("Play");
             break;
         case 2:
-            Serial.println("Set Matrix Brightness:");
-            Serial.println("1. Low");
-            Serial.println("2. Medium");
-            Serial.println("3. High");
-            Serial.println("4. Auto");
-            Serial.println("5. Cancel");
+            lcd.setCursor(0, 0);
+            lcd.print("> Settings     ");
+            Serial.println("Settings");
+            lcd.write(byte(2));
             waitingForInput = true;
-            Serial.print("\n");
             break;
+        case 3:
+            lcd.setCursor(0, 0);
+            lcd.print("> About");
+            Serial.println("About");
         default:
             Serial.println("Invalid options");
             Serial.print("\n");
