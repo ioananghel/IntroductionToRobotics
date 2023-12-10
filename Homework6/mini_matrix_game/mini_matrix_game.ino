@@ -52,7 +52,8 @@ bool start = 0, uncovered = 0;
 int noWalls = 0;
 unsigned long startTime = 0;
 
-int menu = 0, play = 1, settings = 2, about = 3;
+const int menu = 0, play = 1, settings = 2, setLCDBrightness = 20, setMatrixBrightness = 21, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+int menuNo = 3, aboutNo = 3, settingsNo = 1;
 
 const int soundFrequencies = 3;
 int currentFrequency = 0;
@@ -335,6 +336,7 @@ void loop() {
     if (!start && inMenu) {
         readJoystick();
         navigateMenu();
+        selectInMenu();
     }
 }
 
@@ -404,21 +406,31 @@ void actOnJoystick() {
 }
 
 void navigateMenu() {
+    if(option != 0) {
+        menuNo = option == 20 ? settingsNo : aboutNo;
+    }
+    else {
+        menuNo = 3;
+    }
     if(xValue < lowerThresholdX && millis() - lastChangeX > debounceTime) {
         lastChangeX = millis();
         selected++;
-        if(selected > 3) {
+        if(selected > menuNo) {
             selected = 0;
         }
-        printMenu(selected);
+        Serial.print("Navigating to: ");
+        Serial.println(option + selected);
+        printMenu(option + selected);
     }
     else if(xValue > upperThresholdX && millis() - lastChangeX > debounceTime) {        
         lastChangeX = millis();
         selected--;
         if(selected < 0) {
-            selected = 3;
+            selected = menuNo;
         }
-        printMenu(selected);
+        Serial.print("Navigating to: ");
+        Serial.println(option + selected);
+        printMenu(option + selected);
     }
 }
 
@@ -429,6 +441,30 @@ void actOnSW() {
         Bullet* bullet = new Bullet(xLastPos, yLastPos, currentDirection);
         BulletNode* node = new BulletNode(bullet);
         bullets.addNode(node);
+    }
+}
+
+void selectInMenu() {
+    if(digitalRead(pinSW) == 1 && millis() - lastChangeSW > debounceTime) {
+        Serial.print("Selecting in menu: selected = ");
+        Serial.print(selected);
+        Serial.print(", option = ");
+        Serial.println(option);
+        lcd.createChar(4, downwardArrow);
+        lastChangeSW = millis();
+        if(option == 0 && (selected == 0 || selected == 1)) {
+            return;
+        }
+        if(option != 0) {
+            selected = option / 10;
+            option = 0;
+            printMenu(option + selected);
+        }
+        else if(selected == 2 || selected == 3) {
+            option = selected * 10;
+            selected = 0;
+            printMenu(option + selected);
+        }
     }
 }
 
@@ -516,6 +552,7 @@ void printMenu(int subMenu = 0) {
             // startTime = millis();
             // inMenu = false;
             // these are actually for selecting play
+            lcd.createChar(4, playButton);
             lcd.setCursor(0, 0);
             lcd.print("> Play ");
             lcd.write(byte(4));
@@ -532,6 +569,26 @@ void printMenu(int subMenu = 0) {
             lcd.write(byte(7));
             waitingForInput = true;
             break;
+        case setLCDBrightness:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Settings ");
+            lcd.write(byte(2));
+            lcd.setCursor(1, 1);
+            lcd.print("LCD Glow     ");
+            lcd.write(byte(7));
+            Serial.println("LCD Glow");
+            break;
+        case setMatrixBrightness:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Settings ");
+            lcd.write(byte(2));
+            lcd.setCursor(1, 1);
+            lcd.print("Matrix Glow  ");
+            lcd.write(byte(7));
+            Serial.println("Matrix Glow");
+            break;
         case about:
             lcd.setCursor(0, 0);
             lcd.print("> About ");
@@ -540,8 +597,53 @@ void printMenu(int subMenu = 0) {
             lcd.write(byte(7));
             Serial.println("About");
             break;
+        case expandedAboutGameName:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Rapid Shootout");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutCreatorName:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Ioan Anghel   ");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutGitHub:
+            lcd.createChar(3, github);
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.write(byte(3));
+            lcd.print(" ioananghel  ");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutLinkedin:
+            lcd.createChar(3, linkedin);
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.write(byte(3));
+            lcd.print(" ioananghel  ");
+            lcd.write(byte(7));
+            break;
         default:
-            Serial.println("Invalid options");
+            Serial.print("Invalid options: ");
+            Serial.println(subMenu);
             Serial.print("\n");
             break;
     }
