@@ -132,3 +132,47 @@ byte upDownArrows[matrixSize] = {
 	0b01010,
 	0b00100
 };
+
+byte playButton[matrixSize] = {
+	0b10000,
+	0b11000,
+	0b11100,
+	0b11111,
+	0b11111,
+	0b11100,
+	0b11000,
+	0b10000
+};
+
+byte downwardArrow[matrixSize] = {
+	0b00000,
+	0b00000,
+	0b00000,
+	0b10001,
+	0b01010,
+	0b00100,
+	0b00000,
+	0b00000
+};
+
+byte linkedin[matrixSize] = {
+	0b00000,
+	0b00000,
+	0b10000,
+	0b00110,
+	0b10101,
+	0b10101,
+	0b10101,
+	0b10101
+};
+
+byte github[matrixSize] = {
+	0b11111,
+	0b11111,
+	0b10101,
+	0b00000,
+	0b01010,
+	0b00000,
+	0b10001,
+	0b11111
+};
