@@ -52,6 +52,8 @@ bool start = 0, uncovered = 0;
 int noWalls = 0;
 unsigned long startTime = 0;
 
+int menu = 0, play = 1, settings = 2, about = 3;
+
 const int soundFrequencies = 3;
 int currentFrequency = 0;
 int bulletSoundFrequencies[] = {800, 1000, 1200};
@@ -235,10 +237,11 @@ void setup() {
     lcd.createChar(1, trophyChar);
     lcd.createChar(2, wrenchChar);
     lcd.createChar(3, amazedChar);
-    lcd.createChar(4, explosion1Step);
+    // lcd.createChar(4, explosion1Step);
     // lcd.createChar(5, explosion2Step);
     // lcd.createChar(6, explosion3Step);
     // lcd.createChar(7, fullMatrix);
+    lcd.createChar(4, playButton);
     lcd.createChar(5, heartChar);
     lcd.createChar(6, skullChar);
     lcd.createChar(7, upDownArrows);
@@ -501,33 +504,42 @@ void generateWalls() {
 void printMenu(int subMenu = 0) {
     lcd.clear();
     switch(subMenu) {
-        case 0:
+        case menu:
             Serial.println("Main menu:");
             lcd.setCursor(0, 0);
             lcd.print("Main menu      ");
             lcd.write(byte(7));
             menuDisplayed = true;
             break;
-        case 1:
+        case play:
             // start = 1;
             // startTime = millis();
             // inMenu = false;
             // these are actually for selecting play
             lcd.setCursor(0, 0);
-            lcd.print("> Play         ");
+            lcd.print("> Play ");
+            lcd.write(byte(4));
+            lcd.print("       ");
+            lcd.write(byte(7));
             Serial.println("Play");
             break;
-        case 2:
+        case settings:
             lcd.setCursor(0, 0);
-            lcd.print("> Settings     ");
-            Serial.println("Settings");
+            lcd.print("> Settings ");
             lcd.write(byte(2));
+            lcd.print("   ");
+            Serial.println("Settings");
+            lcd.write(byte(7));
             waitingForInput = true;
             break;
-        case 3:
+        case about:
             lcd.setCursor(0, 0);
-            lcd.print("> About");
+            lcd.print("> About ");
+            lcd.write(byte(5));
+            lcd.print("      ");
+            lcd.write(byte(7));
             Serial.println("About");
+            break;
         default:
             Serial.println("Invalid options");
             Serial.print("\n");
@@ -558,4 +570,18 @@ void resetBoard() {
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
+}
+
+void animateLCD(int ownChar) {
+    lcd.clear();
+    int lcdRows = 2, lcdCols = 16;
+    for(int i = 0; i < 2; i++) {
+        for(int j = 0; j < lcdCols; j++) {
+
+            lcd.setCursor(j, i);
+            lcd.write(byte(ownChar));
+            delay(50);
+        }
+    }
+    lcd.clear();
 }
