@@ -52,7 +52,10 @@ bool start = 0, uncovered = 0;
 int noWalls = 0;
 unsigned long startTime = 0;
 
-const int menu = 0, play = 1, settings = 2, setLCDBrightness = 20, setMatrixBrightness = 21, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+const int menu = 0, play = 1, easy = 0, medium = 1, hard = 2, settings = 2, setLCDBrightness = 20, setMatrixBrightness = 21, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+const int easyTime = 90 * second, mediumTime = 60 * second, hardTime = 30 * second;
+int roundTime = 90000;
+unsigned long lastUpdateTime = 0;
 int menuNo = 3, aboutNo = 3, settingsNo = 1;
 
 const int soundFrequencies = 3;
@@ -85,6 +88,7 @@ byte matrix[matrixSize][matrixSize] = {
 
 void updateMatrix();
 void printMenu(int subMenu = 0);
+void selectInMenu(bool fromJoystick = false);
 
 class Bullet {
     int xPos, yPos;
@@ -290,6 +294,16 @@ void loop() {
             coverMatrix();
             uncoverMatrix();
             uncovered = 1;
+            Serial.println("Game started");
+            inGameLCD();
+        }
+
+        if(millis() - lastUpdateTime > second) {
+            lastUpdateTime = millis();
+            lcd.setCursor(1, 1);
+            lcd.print("   ");
+            lcd.setCursor(1, 1);
+            lcd.print((roundTime - (millis() - startTime)) / second);
         }
         
         if(noWalls == 0 && !finished) {
@@ -432,6 +446,17 @@ void navigateMenu() {
         Serial.println(option + selected);
         printMenu(option + selected);
     }
+
+    if(yValue < lowerThresholdY && millis() - lastChangeY > debounceTime) {
+        if(option != 0) {
+            selected = option / 10;
+            option = 0;
+            printMenu(option + selected);
+        }
+    }
+    else if(selected != 1 && yValue > upperThresholdY && millis() - lastChangeY > debounceTime) {
+        selectInMenu(true);
+    }
 }
 
 void actOnSW() {
@@ -444,28 +469,41 @@ void actOnSW() {
     }
 }
 
-void selectInMenu() {
-    if(digitalRead(pinSW) == 1 && millis() - lastChangeSW > debounceTime) {
+void selectInMenu(bool fromJoystick = false) {
+    if((digitalRead(pinSW) == 1 || fromJoystick) && millis() - lastChangeSW > debounceTime) {
         Serial.print("Selecting in menu: selected = ");
         Serial.print(selected);
         Serial.print(", option = ");
         Serial.println(option);
         lcd.createChar(4, downwardArrow);
         lastChangeSW = millis();
-        if(option == 0 && (selected == 0 || selected == 1)) {
+        if(option == 0 && selected == 0) {
             return;
         }
-        if(option != 0) {
-            selected = option / 10;
-            option = 0;
-            printMenu(option + selected);
-        }
-        else if(selected == 2 || selected == 3) {
-            option = selected * 10;
+        // if(option != 0) {
+        //     selected = option / 10;
+        //     option = 0;
+        //     printMenu(option + selected);
+        // }
+        else {
+            option = option / 10 + selected * 10;
             selected = 0;
             printMenu(option + selected);
         }
     }
+}
+
+void inGameLCD() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.write(byte(5));
+    lcd.write(byte(5));
+    lcd.write(byte(5));
+    lcd.setCursor(0, 1);
+    startTime = millis();
+    lcd.write(byte(0));
+    lcd.print((roundTime - (millis() - startTime)) / second);
+    lastUpdateTime = millis();
 }
 
 void bulletsTravel() {
@@ -548,10 +586,6 @@ void printMenu(int subMenu = 0) {
             menuDisplayed = true;
             break;
         case play:
-            // start = 1;
-            // startTime = millis();
-            // inMenu = false;
-            // these are actually for selecting play
             lcd.createChar(4, playButton);
             lcd.setCursor(0, 0);
             lcd.print("> Play ");
@@ -559,6 +593,11 @@ void printMenu(int subMenu = 0) {
             lcd.print("       ");
             lcd.write(byte(7));
             Serial.println("Play");
+            break;
+        case 10:
+            start = 1;
+            startTime = millis();
+            inMenu = false;
             break;
         case settings:
             lcd.setCursor(0, 0);
