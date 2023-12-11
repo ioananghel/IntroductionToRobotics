@@ -19,6 +19,7 @@ const byte d6 = 5;
 const byte d7 = 4;
 
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+byte lcdBrightness = 5;
 
 unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
@@ -34,7 +35,7 @@ const int upperThresholdX = 650, upperThresholdY = 650;
 
 const int startUpTime = 2000;
 int startUpAt = 0;
-const int debounceTime = 300;
+const int debounceTime = 300, debounceTimeBack = 500;
 const int shootDebounceTime = 500;
 const int second = 1000;
 const int bulletBlinkingTime = 100, bulletSpeed = 200, playerBlinkingTime = 400;
@@ -52,11 +53,12 @@ bool start = 0, uncovered = 0;
 int noWalls = 0;
 unsigned long startTime = 0;
 
-const int menu = 0, play = 1, easy = 0, medium = 1, hard = 2, settings = 2, setLCDBrightness = 20, setMatrixBrightness = 21, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+const int menu = 0, play = 1, easy = 0, medium = 1, hard = 2, settings = 2, setLCDBrightness = 20, lcdLow = 200, lcdMed = 201, lcdHigh = 202, setMatrixBrightness = 21, matrixLow = 210, matrixMed = 211, matrixHigh = 212, matrixAuto = 213, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+const int select = 10;
 const int easyTime = 90 * second, mediumTime = 60 * second, hardTime = 30 * second;
 int roundTime = 90000;
 unsigned long lastUpdateTime = 0;
-int menuNo = 3, aboutNo = 3, settingsNo = 1;
+int menuNo = 3, aboutNo = 3, settingsNo = 1, lcdNo = 2, matrixNo = 3;
 
 const int soundFrequencies = 3;
 int currentFrequency = 0;
@@ -420,8 +422,11 @@ void actOnJoystick() {
 }
 
 void navigateMenu() {
-    if(option != 0) {
+    if(option != 0 && option < 100) {
         menuNo = option == 20 ? settingsNo : aboutNo;
+    }
+    else if(option == 200 || option == 210) {
+        menuNo = option == 200 ? lcdNo : matrixNo;
     }
     else {
         menuNo = 3;
@@ -447,10 +452,10 @@ void navigateMenu() {
         printMenu(option + selected);
     }
 
-    if(yValue < lowerThresholdY && millis() - lastChangeY > debounceTime) {
+    if(yValue < lowerThresholdY && millis() - lastChangeY > debounceTimeBack) {
         if(option != 0) {
-            selected = option / 10;
-            option = 0;
+            selected = (option / 10) % 10;
+            option /= 100;
             printMenu(option + selected);
         }
     }
@@ -485,8 +490,8 @@ void selectInMenu(bool fromJoystick = false) {
         //     option = 0;
         //     printMenu(option + selected);
         // }
-        else {
-            option = option / 10 + selected * 10;
+        else if(option == 0 || option / 10 < 10 || option == 200 || option == 210) {
+            option = ((option / 10) * 10 + selected) * 10;
             selected = 0;
             printMenu(option + selected);
         }
@@ -618,6 +623,51 @@ void printMenu(int subMenu = 0) {
             lcd.write(byte(7));
             Serial.println("LCD Glow");
             break;
+        case lcdLow:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Low          ");
+            lcd.write(byte(7));
+            break;
+        case lcdLow * select:
+            lcdBrightness = 2;
+            setLcdBrightness(lcdBrightness);
+            option = lcdLow;
+            selected = lcdLow % 10;
+            printMenu(option + selected);
+            break;
+        case lcdMed:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Medium       ");
+            lcd.write(byte(7));
+            break;
+        case lcdMed * select:
+            lcdBrightness = 5;
+            setLcdBrightness(lcdBrightness);
+            option = lcdLow;
+            selected = lcdMed % 10;
+            printMenu(option + selected);
+            break;
+        case lcdHigh:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("High         ");
+            lcd.write(byte(7));
+            break;
+        case lcdHigh * select:
+            lcdBrightness = 10;
+            setLcdBrightness(lcdBrightness);
+            option = lcdLow;
+            selected = lcdHigh % 10;
+            printMenu(option + selected);
+            break;
         case setMatrixBrightness:
             lcd.setCursor(0, 0);
             lcd.write(byte(4));
@@ -627,6 +677,65 @@ void printMenu(int subMenu = 0) {
             lcd.print("Matrix Glow  ");
             lcd.write(byte(7));
             Serial.println("Matrix Glow");
+            break;
+        case matrixLow:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Low          ");
+            lcd.write(byte(7));
+            break;
+        case matrixLow * select:
+            matrixBrightness = 2;
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixLow % 10;
+            printMenu(option + selected);
+            break;
+        case matrixMed:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Medium       ");
+            lcd.write(byte(7));
+            break;
+        case matrixMed * select:
+            matrixBrightness = 7.5;
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixMed % 10;
+            printMenu(option + selected);
+            break;
+        case matrixHigh:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("High         ");
+            lcd.write(byte(7));
+            break;
+        case matrixHigh * select:
+            matrixBrightness = 15;
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixHigh % 10;
+            printMenu(option + selected);
+            break;
+        case matrixAuto:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Automatic    ");
+            lcd.write(byte(7));
+            break;
+        case matrixAuto * select:
+            automaticBrightness = !automaticBrightness;
+            option = matrixLow;
+            selected = matrixAuto % 10;
+            printMenu(option + selected);
             break;
         case about:
             lcd.setCursor(0, 0);
@@ -725,4 +834,10 @@ void animateLCD(int ownChar) {
         }
     }
     lcd.clear();
+}
+
+void setLcdBrightness(int brightness) {
+    lcdBrightness = brightness;
+    Serial.print("Setting LCD brightness to: ");
+    Serial.println(lcdBrightness);
 }
