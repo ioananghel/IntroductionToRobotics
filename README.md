@@ -159,6 +159,20 @@ Link to the video showcasing the functionality: https://youtu.be/FB3EmhiGD5w
 <summary>
 Mini 8x8 LED Matrix game
 </summary>
+The task for this homework is to extend the functionality of the previous one, adding and LCD display for the Menu. The player can now navigate the Play, Settings and About menus, and can change the difficulty of the game, as well as the brightness of the Matrix and LCD.
 
+Physical requirements:
+  - Arduino Board
+  - Breadboard
+  - 8x8 LED Matrix
+  - Joystick
+  - Button
+  - Buzzer
+  - LCD Display
+  - 10 kOhm Resistor for pull-down
+  - 20 kOhm Resistor for LED Matrix
+  - 100 uF Electroytic Capacitor
+  - 0.1 uF Ceramic Capacitor
+  - Wires
 
 </details>
