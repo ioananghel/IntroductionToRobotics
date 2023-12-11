@@ -152,3 +152,13 @@ Physical requirements:
 Link to the video showcasing the functionality: https://youtu.be/FB3EmhiGD5w
 
 </details>
+
+
+# Homework 7
+<details>
+<summary>
+Mini 8x8 LED Matrix game
+</summary>
+
+
+</details>
