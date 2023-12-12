@@ -175,4 +175,8 @@ Physical requirements:
   - 0.1 uF Ceramic Capacitor
   - Wires
 
+![Circuit1](Homework6/mini_matrix_game_circuit_step2.jpg)
+
+Link to the video showcasing the functionality: https://youtu.be/qhjrmJC6y2Q
+
 </details>
