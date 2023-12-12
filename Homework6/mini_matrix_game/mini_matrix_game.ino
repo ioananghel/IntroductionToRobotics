@@ -79,17 +79,28 @@ direction left = {-1, 0};
 direction right = {1, 0};
 direction currentDirection = {0, 0};
 
-byte matrix[matrixSize][matrixSize] = {
-  {1, 1, 1, 0, 0, 1, 1, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 1, 1, 0, 0, 1, 1, 1}  
-};
+// byte matrix[matrixSize][matrixSize] = {
+//   {1, 1, 1, 0, 0, 1, 1, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {0, 0, 0, 0, 0, 0, 0, 0},
+//   {0, 0, 0, 0, 0, 0, 0, 0},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 1, 1, 0, 0, 1, 1, 1}  
+// };
 /// here, i could make these walls that i want to be permanent have another value, so that i can not destroy them!
+
+byte matrix[matrixSize][matrixSize] = {
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0}  
+};
 
 void updateMatrix();
 void printMenu(int subMenu = 0);
