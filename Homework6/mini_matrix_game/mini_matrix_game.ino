@@ -1,5 +1,7 @@
-#include "LedControl.h" 
-#include <time.h>
+#include "LedControl.h"
+#include <LiquidCrystal.h>
+#include <EEPROM.h>
+#include "custom_chars.h"
 const int dinPin = 12;
 const int clockPin = 11;
 const int loadPin = 10;
@@ -9,6 +11,17 @@ const int pinY = A1;
 const int pinLDR = A3;
 const int pinSW = 2;
 const int buzzerPin = 3;
+
+const byte rs = 13;
+const byte en = 8;
+const byte d4 = 7;
+const byte d5 = 6;
+const byte d6 = 5;
+const byte d7 = 4;
+const int lcdBacklight = 9;
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+byte lcdBrightness = 5;
 
 unsigned long lastChangeX = 0, lastChangeY = 0, lastChangeSW;
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
@@ -22,7 +35,9 @@ int xValue, yValue;
 const int lowerThresholdX = 400, lowerThresholdY = 400;
 const int upperThresholdX = 650, upperThresholdY = 650;
 
-const int debounceTime = 300;
+const int startUpTime = 2000;
+int startUpAt = 0;
+const int debounceTime = 300, debounceTimeBack = 500;
 const int shootDebounceTime = 500;
 const int second = 1000;
 const int bulletBlinkingTime = 100, bulletSpeed = 200, playerBlinkingTime = 400;
@@ -30,14 +45,23 @@ unsigned long lastBulletMove = 0;
 unsigned long lastBulletBlink = 0, lastPlayerBlink = 0, lastBulletSound = 0, lastHitSound = 0;
 bool bulletState = 0, playerState = 0;
 
-const byte matrixSize = 8;
+// const byte matrixSize = 8;
 bool matrixChanged = true;
 
 bool menuDisplayed = false, waitingForInput = false, finished = false, playDestroySound = false, playShootSound = false, automaticBrightness = false;
-int selected = -1, option = -1;
+const int lcdBrightnessAddress = 3, matrixBrightnessAddress = 3 + sizeof(byte) + 1;
+bool inMenu = true, standby = false;
+int selected = 0, option = 0;
 bool start = 0, uncovered = 0;
-int noWalls = 0;
+int noWalls = 0, initialNoWalls = 0;
 unsigned long startTime = 0;
+
+const int menu = 0, play = 1, easy = 10, medium = 11, hard = 12, settings = 2, setLCDBrightness = 20, lcdLow = 200, lcdMed = 201, lcdHigh = 202, setMatrixBrightness = 21, matrixLow = 210, matrixMed = 211, matrixHigh = 212, matrixAuto = 213, about = 3, expandedAboutGameName = 30, expandedAboutCreatorName = 31, expandedAboutGitHub = 32, expandedAboutLinkedin = 33;
+const int select = 10;
+const int easyTime = 90 * second, mediumTime = 60 * second, hardTime = 30 * second;
+int roundTime = 90000;
+unsigned long lastUpdateTime = 0;
+int menuNo = 3, aboutNo = 3, settingsNo = 1, lcdNo = 2, matrixNo = 3;
 
 const int soundFrequencies = 3;
 int currentFrequency = 0;
@@ -55,6 +79,18 @@ direction left = {-1, 0};
 direction right = {1, 0};
 direction currentDirection = {0, 0};
 
+// byte matrix[matrixSize][matrixSize] = {
+//   {1, 1, 1, 0, 0, 1, 1, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {0, 0, 0, 0, 0, 0, 0, 0},
+//   {0, 0, 0, 0, 0, 0, 0, 0},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 0, 0, 0, 0, 0, 0, 1},
+//   {1, 1, 1, 0, 0, 1, 1, 1}  
+// };
+/// here, i could make these walls that i want to be permanent have another value, so that i can not destroy them!
+
 byte matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -66,23 +102,9 @@ byte matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0}  
 };
 
-byte trophyMatrix[matrixSize][matrixSize] = {
-    {1, 1, 1, 1, 1, 1, 1, 1},
-    {1, 0, 1, 1, 1, 1, 0, 1},
-    {0, 1, 1, 1, 1, 1, 1, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0},
-    {0, 0, 0, 1, 1, 0, 0, 0},
-    {0, 0, 0, 1, 1, 0, 0, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0},
-    {0, 0, 1, 1, 1, 1, 0, 0}
-};
-
-class Player {
-
-};
-
 void updateMatrix();
-void printMenu(int subMenu = -1);
+void printMenu(int subMenu = 0);
+void selectInMenu(bool fromJoystick = false);
 
 class Bullet {
     int xPos, yPos;
@@ -230,6 +252,24 @@ BulletList bullets;
 
 void setup() {
     Serial.begin(9600);
+    lcd.begin(16, 2);
+
+    lcd.createChar(0, timerChar);
+    lcd.createChar(1, trophyChar);
+    lcd.createChar(2, wrenchChar);
+    lcd.createChar(3, amazedChar);
+    // lcd.createChar(4, explosion1Step);
+    // lcd.createChar(5, explosion2Step);
+    // lcd.createChar(6, explosion3Step);
+    // lcd.createChar(7, fullMatrix);
+    lcd.createChar(4, playButton);
+    lcd.createChar(5, heartChar);
+    lcd.createChar(6, skullChar);
+    lcd.createChar(7, upDownArrows);
+
+    matrixBrightness = EEPROM.get(matrixBrightnessAddress, matrixBrightness);
+    lcdBrightness = EEPROM.get(lcdBrightnessAddress, lcdBrightness);
+
     lc.shutdown(0, false);
     lc.setIntensity(0, matrixBrightness);
     lc.clearDisplay(0);
@@ -244,12 +284,30 @@ void setup() {
     pinMode(pinX, INPUT);
     pinMode(pinY, INPUT);
     pinMode(pinSW, INPUT_PULLUP);
+
+    lcd.setCursor(0, 0);
+    lcd.print("Hello, player!");
+    lcd.setCursor(0, 2);
+    lcd.print("Remember:be fast!");
+    startUpAt = millis();
 }
 
 void loop() {
+    if(millis() - startUpAt < startUpTime) {
+        return;
+    }
+
+    if(standby) {
+        if(digitalRead(pinSW) == 1 && millis() - lastChangeSW > debounceTime) {
+            start = 0;
+            standby = false;
+            inMenu = true;
+            menuDisplayed = false;
+        }
+    }
 
     if(!menuDisplayed && !start) {
-        selected = -1;
+        selected = 0;
         printMenu();
     }
 
@@ -263,9 +321,41 @@ void loop() {
             coverMatrix();
             uncoverMatrix();
             uncovered = 1;
+            Serial.println("Game started");
+            inGameLCD();
+        }
+
+        if(millis() - lastUpdateTime > second) {
+            lastUpdateTime = millis();
+            lcd.setCursor(1, 1);
+            lcd.print("   ");
+            lcd.setCursor(1, 1);
+            lcd.print((roundTime - (millis() - startTime)) / second);
+            Serial.print("Time left: ");
+            Serial.println((roundTime - (millis() - startTime)) / second);
+
+            if((roundTime - (millis() - startTime)) / second == 0) {
+                standby = true;
+                coverMatrix();
+                displayAnimation(trophyMatrix);
+                resetBoard();
+                Serial.print("Congrats, you finished in ");
+                Serial.print((millis() - startTime) / second);
+                Serial.println(" seconds");
+                animateLCD(3);
+                Serial.println("Time's up!");
+                lcd.clear();
+                lcd.setCursor(0, 0);
+                lcd.print("Time's up!");
+                lcd.setCursor(0, 1);
+                lcd.print("You got: ");
+                lcd.print(initialNoWalls - noWalls);
+                lcd.print(" points");
+            }
         }
         
         if(noWalls == 0 && !finished) {
+            standby = true;
             coverMatrix();
             displayAnimation(trophyMatrix);
             resetBoard();
@@ -306,50 +396,10 @@ void loop() {
             }
         }
     }
-
-    if (!start && Serial.available() > 0) {
-        if(waitingForInput) {
-            waitingForInput = false;
-            option = -1;
-            option = Serial.parseInt();
-            switch(option) {
-                case 1:
-                    automaticBrightness = false;
-                    matrixBrightness = 2;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 2:
-                    automaticBrightness = false;
-                    matrixBrightness = 8;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 3:
-                    automaticBrightness = false;
-                    matrixBrightness = 15;
-                    lc.setIntensity(0, matrixBrightness);
-                    break;
-                case 4:
-                    automaticBrightness = true;
-                case 5:
-                    break;
-                default:
-                    Serial.println("Invalid option");
-                    break;
-            }
-            printMenu();
-        }
-        else {
-            option = -1;
-            option = Serial.parseInt();
-
-            if (option != -1) {
-                selected = option;
-                printMenu(option);
-            }
-            else {
-                Serial.println("Invalid option");
-            }
-        }
+    if (!start && inMenu) {
+        readJoystick();
+        navigateMenu();
+        selectInMenu();
     }
 }
 
@@ -418,6 +468,49 @@ void actOnJoystick() {
     }
 }
 
+void navigateMenu() {
+    if(option != 0 && option < 100) {
+        menuNo = option == 20 ? settingsNo : aboutNo;
+    }
+    else if(option == 200 || option == 210) {
+        menuNo = option == 200 ? lcdNo : matrixNo;
+    }
+    else {
+        menuNo = 3;
+    }
+    if(xValue < lowerThresholdX && millis() - lastChangeX > debounceTime) {
+        lastChangeX = millis();
+        selected++;
+        if(selected > menuNo) {
+            selected = 0;
+        }
+        Serial.print("Navigating to: ");
+        Serial.println(option + selected);
+        printMenu(option + selected);
+    }
+    else if(xValue > upperThresholdX && millis() - lastChangeX > debounceTime) {        
+        lastChangeX = millis();
+        selected--;
+        if(selected < 0) {
+            selected = menuNo;
+        }
+        Serial.print("Navigating to: ");
+        Serial.println(option + selected);
+        printMenu(option + selected);
+    }
+
+    if(yValue < lowerThresholdY && millis() - lastChangeY > debounceTimeBack) {
+        if(option != 0) {
+            selected = (option / 10) % 10;
+            option /= 100;
+            printMenu(option + selected);
+        }
+    }
+    else if(selected != 1 && yValue > upperThresholdY && millis() - lastChangeY > debounceTime) {
+        selectInMenu(true);
+    }
+}
+
 void actOnSW() {
     if(digitalRead(pinSW) == 1 && millis() - lastChangeSW > shootDebounceTime) {
         lastChangeSW = millis();
@@ -426,6 +519,43 @@ void actOnSW() {
         BulletNode* node = new BulletNode(bullet);
         bullets.addNode(node);
     }
+}
+
+void selectInMenu(bool fromJoystick = false) {
+    if((digitalRead(pinSW) == 1 || fromJoystick) && millis() - lastChangeSW > debounceTime) {
+        Serial.print("Selecting in menu: selected = ");
+        Serial.print(selected);
+        Serial.print(", option = ");
+        Serial.println(option);
+        lcd.createChar(4, downwardArrow);
+        lastChangeSW = millis();
+        if(option == 0 && selected == 0) {
+            return;
+        }
+        // if(option != 0) {
+        //     selected = option / 10;
+        //     option = 0;
+        //     printMenu(option + selected);
+        // }
+        else if(option == 0 || option / 10 < 10 || option == 200 || option == 210) {
+            option = ((option / 10) * 10 + selected) * 10;
+            selected = 0;
+            printMenu(option + selected);
+        }
+    }
+}
+
+void inGameLCD() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.write(byte(5));
+    lcd.write(byte(5));
+    lcd.write(byte(5));
+    lcd.setCursor(0, 1);
+    startTime = millis();
+    lcd.write(byte(0));
+    lcd.print((roundTime - (millis() - startTime)) / second);
+    lastUpdateTime = millis();
 }
 
 void bulletsTravel() {
@@ -486,6 +616,7 @@ void generateWalls() {
     randomSeed(analogRead(A2));
 
     noWalls = random() % 17 + 32;
+    initialNoWalls = noWalls;
     for(int i = 0; i < noWalls; i++) {
         int x = random() % matrixSize;
         int y = random() % matrixSize;
@@ -497,31 +628,275 @@ void generateWalls() {
     }
 }
 
-void printMenu(int subMenu = -1) {
+void printMenu(int subMenu = 0) {
+    lcd.clear();
     switch(subMenu) {
-        case -1:
+        case menu:
             Serial.println("Main menu:");
-            Serial.println("1. Play");
-            Serial.println("2. Set Matrix Brightness");
-            Serial.print("\n");
+            lcd.setCursor(0, 0);
+            lcd.print("Rapid Shootout");
+            lcd.write(byte(7));
             menuDisplayed = true;
             break;
-        case 1:
+        case play:
+            lcd.createChar(4, playButton);
+            lcd.setCursor(0, 0);
+            lcd.print("> Play ");
+            lcd.write(byte(4));
+            lcd.print("       ");
+            lcd.write(byte(7));
+            Serial.println("Play");
+            break;
+        case easy:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Play");
+            lcd.print("       ");
+            lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Easy         ");
+            break;
+        case easy * select:
+            roundTime = easyTime;
             start = 1;
             startTime = millis();
+            inMenu = false;
             break;
-        case 2:
-            Serial.println("Set Matrix Brightness:");
-            Serial.println("1. Low");
-            Serial.println("2. Medium");
-            Serial.println("3. High");
-            Serial.println("4. Auto");
-            Serial.println("5. Cancel");
+        case medium:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Play");
+            lcd.print("       ");
+            lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Medium       ");
+            break;
+        case medium * select:
+            roundTime = mediumTime;
+            start = 1;
+            startTime = millis();
+            inMenu = false;
+            break;
+        case hard:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Play");
+            lcd.print("       ");
+            lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Hard         ");
+            break;
+        case hard * select:
+            roundTime = hardTime;
+            start = 1;
+            startTime = millis();
+            inMenu = false;
+            break;
+        // case 10:
+        //     start = 1;
+        //     startTime = millis();
+        //     inMenu = false;
+        //     break;
+        case settings:
+            lcd.setCursor(0, 0);
+            lcd.print("> Settings ");
+            lcd.write(byte(2));
+            lcd.print("   ");
+            Serial.println("Settings");
+            lcd.write(byte(7));
             waitingForInput = true;
-            Serial.print("\n");
+            break;
+        case setLCDBrightness:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Settings ");
+            lcd.write(byte(2));
+            lcd.setCursor(1, 1);
+            lcd.print("LCD Glow     ");
+            lcd.write(byte(7));
+            Serial.println("LCD Glow");
+            break;
+        case lcdLow:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Low          ");
+            lcd.write(byte(7));
+            break;
+        case lcdLow * select:
+            lcdBrightness = 200;
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            setLcdBrightness();
+            option = lcdLow;
+            selected = lcdLow % 10;
+            printMenu(option + selected);
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            break;
+        case lcdMed:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Medium       ");
+            lcd.write(byte(7));
+            break;
+        case lcdMed * select:
+            lcdBrightness = 600;
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            setLcdBrightness();
+            option = lcdLow;
+            selected = lcdMed % 10;
+            printMenu(option + selected);
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            break;
+        case lcdHigh:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" LCD Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("High         ");
+            lcd.write(byte(7));
+            break;
+        case lcdHigh * select:
+            lcdBrightness = 1000;
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            setLcdBrightness();
+            option = lcdLow;
+            selected = lcdHigh % 10;
+            printMenu(option + selected);
+            EEPROM.put(lcdBrightnessAddress, lcdBrightness);
+            break;
+        case setMatrixBrightness:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Settings ");
+            lcd.write(byte(2));
+            lcd.setCursor(1, 1);
+            lcd.print("Matrix Glow  ");
+            lcd.write(byte(7));
+            Serial.println("Matrix Glow");
+            break;
+        case matrixLow:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Low          ");
+            lcd.write(byte(7));
+            break;
+        case matrixLow * select:
+            matrixBrightness = 2;
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixLow % 10;
+            printMenu(option + selected);
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            break;
+        case matrixMed:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Medium       ");
+            lcd.write(byte(7));
+            break;
+        case matrixMed * select:
+            matrixBrightness = 7.5;
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixMed % 10;
+            printMenu(option + selected);
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            break;
+        case matrixHigh:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("High         ");
+            lcd.write(byte(7));
+            break;
+        case matrixHigh * select:
+            matrixBrightness = 15;
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            lc.setIntensity(0, matrixBrightness);
+            option = matrixLow;
+            selected = matrixHigh % 10;
+            printMenu(option + selected);
+            EEPROM.put(matrixBrightnessAddress, matrixBrightness);
+            break;
+        case matrixAuto:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" Matrix Glow");
+            lcd.setCursor(1, 1);
+            lcd.print("Automatic    ");
+            lcd.write(byte(7));
+            break;
+        case matrixAuto * select:
+            automaticBrightness = !automaticBrightness;
+            option = matrixLow;
+            selected = matrixAuto % 10;
+            printMenu(option + selected);
+            break;
+        case about:
+            lcd.setCursor(0, 0);
+            lcd.print("> About ");
+            lcd.write(byte(5));
+            lcd.print("      ");
+            lcd.write(byte(7));
+            Serial.println("About");
+            break;
+        case expandedAboutGameName:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Rapid Shootout");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutCreatorName:
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.print("Ioan Anghel   ");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutGitHub:
+            lcd.createChar(3, github);
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.write(byte(3));
+            lcd.print(" ioananghel  ");
+            lcd.write(byte(7));
+            break;
+        case expandedAboutLinkedin:
+            lcd.createChar(3, linkedin);
+            lcd.setCursor(0, 0);
+            lcd.write(byte(4));
+            lcd.print(" About");
+            lcd.print("      ");
+            // lcd.write(byte(7));
+            lcd.setCursor(1, 1);
+            lcd.write(byte(3));
+            lcd.print(" ioananghel  ");
+            lcd.write(byte(7));
             break;
         default:
-            Serial.println("Invalid options");
+            Serial.print("Invalid options: ");
+            Serial.println(subMenu);
             Serial.print("\n");
             break;
     }
@@ -542,12 +917,32 @@ void resetBoard() {
         }
     }
 
-    menuDisplayed = 0;
+    // menuDisplayed = 0;
     uncovered = 0;
     finished = 1;
+    option = 0;
+    selected = 0;
     start = 0;
     randomSeed(analogRead(A2));
     randomStartPos();
     matrix[xPos][yPos] = 1;
     generateWalls();
+}
+
+void animateLCD(int ownChar) {
+    lcd.clear();
+    int lcdRows = 2, lcdCols = 16;
+    for(int i = 0; i < 2; i++) {
+        for(int j = 0; j < lcdCols; j++) {
+
+            lcd.setCursor(j, i);
+            lcd.write(byte(ownChar));
+            delay(50);
+        }
+    }
+    lcd.clear();
+}
+
+void setLcdBrightness() {
+    analogWrite(lcdBacklight, lcdBrightness);
 }
